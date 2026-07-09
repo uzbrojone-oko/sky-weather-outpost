@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Local data
+/data/*
+!/data/raw_data/
+!/data/raw_data/.gitkeep
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs
+/logs/
+*.log
+
+# Secrets and local config
+secrets.env
+config/local*.yaml
+config/*secret*.yaml
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
