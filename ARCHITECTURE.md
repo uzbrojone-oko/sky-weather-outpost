@@ -125,12 +125,41 @@ Initial v0.1 endpoints:
 Planned later endpoints:
 
 - `GET /api/v1/public/dashboard`
+- `GET /api/v1/internal/status`
 - `GET /api/v1/internal/system`
 - `GET /api/v1/history`
 - `POST /api/v1/ingest`
 - `GET /api/v1/internal/nodes`
 - `GET /api/v1/internal/devices`
 - `GET /metrics`
+
+## Status and presentation model
+
+Operational and telemetry state must have one source of truth. The CLI and web UI must not independently calculate whether a sensor, node, database, backup, web endpoint or other component is healthy.
+
+A shared status service should build a normalized status snapshot from the same underlying measurements, device state, component health and operational checks. That model is exposed through the internal API and rendered by different clients.
+
+For normal runtime inspection:
+
+```text
+status/health services
+        |
+        +-- /api/v1/internal/status
+        |       |
+        |       +-- authenticated web status dashboard
+        |       +-- `outpost status`
+        |
+        +-- /api/v1/internal/health
+                |
+                +-- health checks / monitoring
+                +-- `outpost health`
+```
+
+The same information may therefore appear as graphical cards in the authenticated web UI and as tables, sections and status indicators in the CLI. Domain-specific views such as weather, system, astro, energy or home/site status should reuse the same API data rather than duplicate business logic in each presentation layer.
+
+`outpost status` is intended to display the current state. `outpost doctor` may perform deeper active diagnostics and explain failures, for example configuration validation, database writability, migration state, SDR visibility, `rtl_433` availability, stale sensors, disk space, backup freshness, reverse-proxy reachability, HTTPS certificate validity and optional NAS availability.
+
+Administrative or recovery commands such as install, restore or operations required while the daemon is unavailable may use local system facilities directly; the shared-endpoint rule applies to runtime state and telemetry presentation, not to offline recovery actions.
 
 ## Dashboard model
 
