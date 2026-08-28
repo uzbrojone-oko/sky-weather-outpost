@@ -112,3 +112,37 @@ Goal: first living outpost.
 - Local-first storage.
 - Operational documentation.
 - Ready to run on Kraków Lab and Głębokie Field Outpost.
+
+## Future modules — Energy, PV and EV charging
+
+Energy integrations should build on the generic measurement, device and agent architecture rather than introduce vendor-specific concepts into the core.
+
+### Photovoltaics and site energy
+
+- Pluggable inverter integrations through adapters or agents.
+- Live photovoltaic power monitoring.
+- Daily and total energy production.
+- Inverter status and temperature where available.
+- Optional grid import/export power and energy telemetry.
+- Optional battery state-of-charge, charge/discharge power and energy telemetry.
+- Support future smart-meter and energy-meter integrations.
+- Historical PV and site-energy charts.
+- Energy/PV card on the main dashboard.
+- Correlate photovoltaic production with local weather and all-sky conditions.
+- Allow multiple inverters, meters, batteries and other energy-related devices per site.
+- Keep vendor-specific inverter and meter protocols outside the generic core.
+
+### EV charger / wallbox
+
+- Pluggable EV charger integrations through adapters or agents.
+- Charger availability, connection and charging-session status.
+- Live charging power, current and energy delivered.
+- Charging-session history with start/end time, duration and energy consumed.
+- Optional vehicle state-of-charge when exposed by the charger or a separate vehicle integration.
+- EV charging card on the main dashboard.
+- Correlate charging consumption with photovoltaic production and grid import/export.
+- Future PV-surplus charging mode when supported by the installation and charger.
+- Future configurable charging limits and schedules through a dedicated automation/control layer.
+- Keep charger/vendor protocols and control logic outside the generic telemetry core.
+
+> Future scope only. Energy, PV and EV charging integrations must not expand the v0.1 Kraków Lab MVP. Initial implementations should be read-only telemetry; active control and automation belong to a later, explicitly designed control layer.
