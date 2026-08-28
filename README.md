@@ -54,14 +54,14 @@ outpost backup --config config/examples/krakow.yaml
 
 ## Documentation
 
-- [Architecture](ARCHITECTURE.md)
-- [Roadmap](ROADMAP.md)
-- [MVP](MVP.md)
-- [Tech stack](TECH_STACK.md)
-- [Configuration](CONFIG.md)
-- [Requirements](REQUIREMENTS.md)
-- [Runbook](RUNBOOK.md)
-- [Security](SECURITY.md)
-- [Deployment](DEPLOYMENT.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Roadmap](docs/ROADMAP.md)
+- [MVP](docs/MVP.md)
+- [Tech stack](docs/TECH_STACK.md)
+- [Configuration](docs/CONFIG.md)
+- [Requirements](docs/REQUIREMENTS.md)
+- [Runbook](docs/RUNBOOK.md)
+- [Security](docs/SECURITY.md)
+- [Deployment](docs/DEPLOYMENT.md)
 - [Handbook](docs/HANDBOOK.md)
 - [Copilot instructions](copilot-instructions.md)
