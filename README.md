@@ -4,7 +4,7 @@ Sky Weather Outpost is a configurable local outpost hub for collecting, normaliz
 
 The first target is a small Kraków Lab MVP: read temperature and humidity from one known `rtl_433` sensor, store normalized measurements in SQLite, expose a simple API, and render a one-page dashboard.
 
-The long-term direction is wider: weather stations, all-sky media, node health, astro telemetry, garden sensors, lightning detection, NAS archiving, Docker/Compose, optional observability integrations and future agents.
+The long-term direction is wider: weather stations, all-sky media, node health, astro telemetry, garden sensors, lightning detection, NAS archiving, energy/PV and EV telemetry, Home Assistant/smart-home integration, optional observability integrations and future distributed agents.
 
 ## Core principles
 
@@ -17,6 +17,7 @@ The long-term direction is wider: weather stations, all-sky media, node health, 
 - Media files are stored as files and indexed in the database.
 - NAS is for backup and selected archive, not the active database.
 - Native/systemd is the first deployment target; Docker/Kubernetes readiness should not be blocked by design.
+- Future integrations should extend the generic model rather than add vendor-specific concepts to the core.
 
 ## MVP v0.1
 
@@ -46,8 +47,11 @@ outpost backup --config config/examples/krakow.yaml
 - [Architecture](ARCHITECTURE.md)
 - [Roadmap](ROADMAP.md)
 - [MVP](MVP.md)
+- [Tech stack](TECH_STACK.md)
 - [Configuration](CONFIG.md)
+- [Requirements](REQUIREMENTS.md)
 - [Runbook](RUNBOOK.md)
 - [Security](SECURITY.md)
 - [Deployment](DEPLOYMENT.md)
+- [Handbook](docs/HANDBOOK.md)
 - [Copilot instructions](copilot-instructions.md)
