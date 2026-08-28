@@ -113,11 +113,15 @@ Goal: first living outpost.
 - Operational documentation.
 - Ready to run on Kraków Lab and Głębokie Field Outpost.
 
-## Future modules — Energy, PV and EV charging
+## Future modules
 
-Energy integrations should build on the generic measurement, device and agent architecture rather than introduce vendor-specific concepts into the core.
+The modules below are possible post-v1.0 directions, not requirements for the current MVP or for reaching v1.0. They should build on the generic device, measurement, event and agent architecture and keep vendor-specific protocols outside the core.
 
-### Photovoltaics and site energy
+Initial integrations should prefer read-only telemetry. Active control and automation should be introduced later through an explicitly designed control layer with authentication and appropriate safety boundaries.
+
+### Energy, PV and EV charging
+
+#### Photovoltaics and site energy
 
 - Pluggable inverter integrations through adapters or agents.
 - Live photovoltaic power monitoring.
@@ -132,7 +136,7 @@ Energy integrations should build on the generic measurement, device and agent ar
 - Allow multiple inverters, meters, batteries and other energy-related devices per site.
 - Keep vendor-specific inverter and meter protocols outside the generic core.
 
-### EV charger / wallbox
+#### EV charger / wallbox
 
 - Pluggable EV charger integrations through adapters or agents.
 - Charger availability, connection and charging-session status.
@@ -142,12 +146,10 @@ Energy integrations should build on the generic measurement, device and agent ar
 - EV charging card on the main dashboard.
 - Correlate charging consumption with photovoltaic production and grid import/export.
 - Future PV-surplus charging mode when supported by the installation and charger.
-- Future configurable charging limits and schedules through a dedicated automation/control layer.
-- Keep charger/vendor protocols and control logic outside the generic telemetry core.
+- Future configurable charging limits and schedules through the control/automation layer.
+- Keep charger/vendor protocols outside the generic telemetry core.
 
-> Future scope only. Energy, PV and EV charging integrations must not expand the v0.1 Kraków Lab MVP. Initial implementations should be read-only telemetry; active control and automation belong to a later, explicitly designed control layer.
-
-## Future module — Home Assistant and smart-home integration
+### Home Assistant and smart-home integration
 
 Home Assistant should remain the home-automation and device-control layer, while Sky Weather Outpost can consume, correlate and present selected smart-home state alongside environmental, energy and infrastructure telemetry.
 
@@ -161,6 +163,4 @@ Home Assistant should remain the home-automation and device-control layer, while
 - Allow site configuration to explicitly select which Home Assistant entities are imported and displayed.
 - Track Home Assistant connection/heartbeat state and stale entity data.
 - Keep Zigbee, Z-Wave, ESPHome, Shelly and other device-specific protocols behind Home Assistant when HA already provides the integration.
-- Keep active smart-home control and automation out of the generic telemetry core; future actions should use an explicitly designed control/automation layer with authentication and safety boundaries.
-
-> Future scope only. Home Assistant integration must not expand the v0.1 Kraków Lab MVP. The first implementation should focus on selected read-only state and telemetry plus an authenticated status panel.
+- Route future active smart-home actions through the dedicated control/automation layer rather than the generic telemetry core.
