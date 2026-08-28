@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build the smallest useful Sky Weather Outpost instance: Kraków Lab temperature and humidity from one known `rtl_433` sensor, stored in SQLite and exposed via API and a simple dashboard.
+Build the smallest useful Sky Weather Outpost instance: City Lab temperature and humidity from one known `rtl_433` sensor, stored in SQLite and exposed via API and a simple dashboard.
 
 ## Included
 
@@ -59,8 +59,8 @@ The app can read sample JSONL or live-compatible payloads, store raw and normali
 A user can run:
 
 ```bash
-outpost replay data/raw_data/rtl433-live.jsonl --config config/examples/krakow.yaml
-outpost server --config config/examples/krakow.yaml
+outpost replay data/raw_data/rtl433-live.jsonl --config config/examples/city-lab.yaml
+outpost server --config config/examples/city-lab.yaml
 ```
 
 and open the local dashboard.
