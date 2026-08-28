@@ -38,8 +38,13 @@ Build the smallest useful Sky Weather Outpost instance: Kraków Lab temperature 
 - Astro agent.
 - Garden node.
 - Lightning sensor.
-- Rules/actions/automation.
+- Energy/PV, battery or smart-meter integrations.
+- EV charger/wallbox integration.
+- Home Assistant or other smart-home integrations.
+- Rules/actions/automation or active device control.
 - Public internet exposure.
+
+Future modules are documented in `ROADMAP.md`; they must not expand the v0.1 scope.
 
 ## Success criteria
 
