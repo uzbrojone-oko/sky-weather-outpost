@@ -6,6 +6,16 @@ The first target is a small Kraków Lab MVP: read temperature and humidity from 
 
 The long-term direction is wider: weather stations, all-sky media, node health, astro telemetry, garden sensors, lightning detection, NAS archiving, energy/PV and EV telemetry, Home Assistant/smart-home integration, optional observability integrations and future distributed agents.
 
+## Sky / Weather / Outpost
+
+The project name is also its scope model:
+
+- **Sky** — sky and astronomy observations: all-sky imaging, astro telemetry, cloud information, observation readiness, Astro Score and related media.
+- **Weather** — local environment: temperature, humidity, wind, rain, dew conditions, lightning, garden/environment sensors and historical weather data.
+- **Outpost** — the installation itself: nodes and computers, service health, storage, backup, network and web availability, TLS status, NAS, energy/PV, EV charging and selected smart-home/site infrastructure.
+
+`Outpost` is not a miscellaneous bucket. It represents the physical site as an autonomous technical installation. The hub should be able to answer both "what is happening outside?" and "is the outpost itself healthy?" while keeping automation/control responsibilities separate from the generic telemetry core.
+
 ## Core principles
 
 - Build small, design wide.
