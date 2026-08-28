@@ -4,7 +4,7 @@
 
 Sky Weather Outpost is a configurable local hub for telemetry, environment data, media observations and node health.
 
-It must not be designed as a weather-only application. Weather, all-sky, astro, garden, lightning and system metrics are modules/domains. The core stays generic.
+It must not be designed as a weather-only application. Weather, all-sky, astro, garden, lightning, energy and external/smart-home integrations are modules/domains. The core stays generic and vendor-neutral.
 
 ## Core model
 
@@ -29,6 +29,8 @@ site: glebokie
   node: glebokie-astro-pc
     device: indi:asi533mc-pro
 ```
+
+Future adapters and agents should map vendor- or protocol-specific data onto these generic concepts rather than expand the core model for each integration.
 
 ## Deployment model
 
@@ -115,15 +117,15 @@ Use API versioning from the beginning:
 
 Public API is read-only and safe to share. Internal API requires auth and may expose debug/system data.
 
-Initial endpoints:
+Initial v0.1 endpoints:
 
 - `GET /api/v1/public/current`
-- `GET /api/v1/public/dashboard`
 - `GET /api/v1/internal/health`
+
+Planned later endpoints:
+
+- `GET /api/v1/public/dashboard`
 - `GET /api/v1/internal/system`
-
-Future endpoints:
-
 - `GET /api/v1/history`
 - `POST /api/v1/ingest`
 - `GET /api/v1/internal/nodes`
@@ -145,8 +147,10 @@ Examples:
 - astro status
 - garden status
 - lightning status
+- energy/PV and EV charging status
+- authenticated home/site status from selected smart-home integrations
 
-Kraków Lab may show only a few cards. Głębokie Field Outpost may show many.
+Kraków Lab may show only a few cards. Głębokie Field Outpost may show many. Public and authenticated/internal views may expose different cards and data.
 
 ## Logging and observability
 
@@ -176,6 +180,8 @@ Future:
 - Config and secrets must be separated.
 - TLS/SSL handled by reverse proxy or tunnel.
 - App should not be directly exposed to the internet.
+- Smart-home state and other privacy-sensitive site information belongs only in authenticated/internal views.
+- Active control/automation is not part of the generic telemetry core and requires a separately designed authenticated control layer.
 
 ## Deployment readiness
 
