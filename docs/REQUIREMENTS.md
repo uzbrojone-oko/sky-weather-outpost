@@ -17,7 +17,7 @@ Development may be performed on Windows, Linux or macOS, but native integration 
 
 ## 2. Minimum hardware
 
-For the v0.1 Kraków Lab MVP:
+For the v0.1 City Lab MVP:
 
 - 64-bit CPU.
 - 2 GB RAM minimum; 4 GB or more recommended.
@@ -357,4 +357,4 @@ The following are deliberately outside the first milestone:
 - Automation or actuator control.
 - Astro Score.
 
-They are future modules and must not complicate the first Kraków Lab implementation.
+They are future modules and must not complicate the first City Lab implementation.
