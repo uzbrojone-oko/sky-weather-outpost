@@ -6,17 +6,17 @@ Each installation should be configured by site, node, enabled modules, devices, 
 
 Secrets must not be committed to git. Use environment variables or a local secrets file outside the repository.
 
-## Example: Kraków Lab
+## Example: City Lab
 
 ```yaml
 site:
-  id: krakow
-  name: "Kraków Lab"
+  id: city-lab
+  name: "City Lab"
   type: lab
   timezone: Europe/Warsaw
 
 node:
-  id: krakow-lab-t620
+  id: city-lab-core
   role: hub
 
 modules:
@@ -44,7 +44,7 @@ api:
 
 devices:
   - key: rtl433:inFactory-TH:1:166
-    name: "Kraków weather shield"
+    name: "City Lab weather sensor"
     type: weather_sensor
     public: true
     match:
@@ -62,17 +62,17 @@ dashboard:
     - system_status
 ```
 
-## Example: Głębokie Field Outpost
+## Example: Core Bunker
 
 ```yaml
 site:
-  id: glebokie
-  name: "Głębokie Outpost"
+  id: core-bunker
+  name: "Core Bunker"
   type: field
   timezone: Europe/Warsaw
 
 node:
-  id: glebokie-core-t620
+  id: core-bunker-core
   role: hub
 
 modules:
