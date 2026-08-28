@@ -36,6 +36,11 @@ Głębokie Field Outpost:
   system metrics
   heartbeat
   NAS archive
+  backup
+  energy / PV
+  EV charging
+  Home Assistant status
+  WWW / TLS health
 ```
 
 Najważniejsza zasada:
@@ -45,6 +50,64 @@ Build small, design wide.
 ```
 
 Czyli pierwsza wersja ma być mała, ale fundament nie może blokować przyszłych modułów.
+
+### Co właściwie znaczy Sky Weather Outpost?
+
+Nazwa projektu jest jednocześnie bardzo dobrym sposobem myślenia o jego zakresie.
+
+```text
+SKY WEATHER OUTPOST
+│
+├── SKY
+│   ├── all-sky
+│   ├── astro telemetry
+│   ├── cloud information
+│   ├── observation readiness
+│   ├── Astro Score
+│   └── sky media
+│
+├── WEATHER
+│   ├── temperature
+│   ├── humidity
+│   ├── wind
+│   ├── rain
+│   ├── dew conditions
+│   ├── lightning
+│   └── garden / environment
+│
+└── OUTPOST
+    ├── nodes / computers
+    ├── services / daemon health
+    ├── storage / disk
+    ├── backup / restore
+    ├── NAS
+    ├── network / WWW / TLS
+    ├── energy / PV
+    ├── EV charging
+    └── selected smart-home/site state
+```
+
+`Sky` mówi, co dzieje się nad posterunkiem.
+
+`Weather` mówi, co dzieje się w jego lokalnym środowisku.
+
+`Outpost` mówi, co dzieje się z samym posterunkiem.
+
+To ostatnie jest ważne. `Outpost` nie oznacza szuflady `inne`. Oznacza fizyczną instalację jako całość. Głębokie Outpost ma swoje komputery, sensory, storage, sieć, zasilanie, usługi i urządzenia. System powinien umieć odpowiedzieć zarówno na pytanie:
+
+```text
+Jaka jest pogoda i czy dziś warto wystawić teleskop?
+```
+
+jak i:
+
+```text
+Czy sam posterunek jest zdrowy i czy wszystko, czego potrzebuje do działania, działa poprawnie?
+```
+
+Dlatego informacja o temperaturze powietrza, stanie all-sky, ostatnim backupie, wolnym miejscu na dysku, produkcji PV czy ważności certyfikatu HTTPS może należeć do tego samego systemu. To różne domeny, ale opisują ten sam fizyczny Outpost.
+
+Jednocześnie Outpost nie powinien próbować zostać drugim Home Assistantem. Może obserwować, archiwizować, korelować i prezentować wybrany stan infrastruktury. Automatyka i sterowanie urządzeniami powinny pozostać w osobnej warstwie lub w systemie takim jak Home Assistant.
 
 ---
 
@@ -79,9 +142,14 @@ camera_sensor_temperature
 lightning_distance
 cpu_usage_percent
 cloud_score
+pv_power
+backup_age_seconds
+tls_certificate_days_remaining
 ```
 
-Dzięki temu projekt nie zamyka się w meteo. Pogoda, astro, ogród, all-sky i monitoring terminala stają się modułami nad tym samym rdzeniem.
+Dzięki temu projekt nie zamyka się w meteo. Pogoda, astro, ogród, all-sky, energia i monitoring posterunku stają się modułami nad tym samym rdzeniem.
+
+Najważniejsze jest to, że podział `Sky / Weather / Outpost` jest sposobem prezentacji i rozumienia systemu, a nie trzema osobnymi architekturami. Pod spodem wszystkie domeny korzystają z tego samego modelu danych.
 
 ---
 
@@ -338,6 +406,7 @@ Przykładowe endpointy:
 /api/v1/public/current
 /api/v1/public/dashboard
 /api/v1/internal/health
+/api/v1/internal/status
 /api/v1/internal/system
 /api/v1/internal/devices
 ```
@@ -366,6 +435,35 @@ Publiczne API nie powinno pokazywać:
 - sekretów
 - debug info
 ```
+
+### CLI i WWW są klientami tego samego Outposta
+
+Jeżeli dashboard pokazuje, że baza jest zdrowa, a CLI pokazuje, że baza jest zdrowa, nie powinny istnieć dwa niezależne fragmenty kodu dochodzące do tego wniosku.
+
+Docelowy model:
+
+```text
+measurements / devices / services / checks
+                 |
+                 v
+         status/health service
+                 |
+        +--------+--------+
+        |                 |
+        v                 v
+ internal API         other APIs
+        |
+   +----+----+
+   |         |
+   v         v
+  WWW       CLI
+```
+
+`outpost status` i prywatny panel WWW powinny więc prezentować ten sam snapshot stanu z `/api/v1/internal/status`. Różni się tylko prezentacja: WWW może używać kart i kolorowych kontrolek, CLI tabel i znaków `✓`, `!`, `✗`.
+
+To samo może dotyczyć domen takich jak weather, astro, energy czy home/site status. Dane i reguły pozostają wspólne, a interfejs jest tylko klientem API.
+
+`outpost doctor` ma inną rolę: może aktywnie wykonywać głębsze testy i powiedzieć *dlaczego* coś nie działa. Restore albo naprawa niedziałającego daemona również nie mogą zależeć od działającego API.
 
 ---
 
@@ -396,6 +494,10 @@ Głębokie Outpost
 - garden status
 - lightning status
 - node health
+- PV / energy
+- backup status
+- WWW / TLS status
+- selected home/site status
 ```
 
 Mentalnie dashboard składa się z kart:
@@ -410,6 +512,8 @@ top_night
 astro_status
 garden_status
 lightning_status
+energy_status
+home_status
 ```
 
 Kraków pokazuje mniej kart, Głębokie więcej. Ten sam core, różny config.
@@ -497,6 +601,32 @@ Docelowo każdy node/agent powinien wysyłać heartbeat:
 
 Hub zapisuje `last_seen` i pokazuje, czy node jest online, stale, warning albo offline.
 
+Docelowo `outpost status` może pokazać ten sam stan, który widzi prywatny dashboard:
+
+```text
+Sky Weather Outpost — Głębokie
+
+WEATHER
+✓ Bresser             online
+✓ Last measurement    18s ago
+
+SKY
+✓ All-sky             online
+○ Astro node          idle
+
+OUTPOST
+✓ Core service        running
+✓ Database            healthy
+✓ Disk                71% free
+✓ Backup              7h ago
+✓ WWW                 reachable
+✓ HTTPS               valid
+✓ TLS certificate     63 days remaining
+! NAS                 unavailable (optional)
+```
+
+`outpost doctor` idzie krok dalej i wykonuje checklistę diagnostyczną. Zielona kontrolka nie ma oznaczać tylko "proces istnieje", ale "sprawdziliśmy konkretny warunek i przeszedł".
+
 ---
 
 ## 13. System metrics terminala
@@ -553,6 +683,7 @@ Przykład:
 /api/v1/public/media/top-night
 
 /api/v1/internal/health
+/api/v1/internal/status
 /api/v1/internal/system
 /api/v1/internal/raw-events
 /api/v1/internal/nodes
@@ -607,816 +738,801 @@ FastAPI/Uvicorn
 Caddy/Nginx/Cloudflare Tunnel
   HTTPS
   reverse proxy
-  public/internal routing
+  public access
 ```
 
-Caddy jest wygodny, bo automatycznie ogarnia HTTPS z Let’s Encrypt.
+Caddy jest bardzo wygodny, bo automatyzuje certyfikaty TLS.
 
-Nginx jest klasyczny i też dobry, ale wymaga więcej konfiguracji.
+Nginx daje więcej ręcznej kontroli.
 
-Apache nie jest tu potrzebny.
+Cloudflare Tunnel może być użyteczny, jeśli nie chcesz wystawiać portów na routerze.
+
+Outpost nie powinien implementować własnego mechanizmu wydawania ani odnawiania certyfikatów. To zadanie Caddy/ACME lub innego reverse proxy. Outpost może natomiast obserwować wynik: czy HTTPS działa, czy certyfikat jest ważny i ile czasu pozostało do jego wygaśnięcia.
 
 ---
 
-## 17. NAS jako archiwum, nie aktywna baza
+## 17. NAS — archiwum, nie serce systemu
 
-Terminal jest aktywnym mózgiem outpostu. NAS jest selektywnym archiwum i backupem.
+NAS jest dodatkiem, nie fundamentem działania.
 
-Na terminalu:
-
-```text
-- aktywna baza SQLite
-- aktualny dashboard
-- latest.jpg
-- tymczasowe klatki all-sky
-- runtime/cache/logi
-```
-
-Na NAS:
+Na NAS można trzymać:
 
 ```text
-- backup bazy
-- backup configów
-- najlepsze zdjęcia nocy
+- backup SQLite
+- backup configu
+- wybrane all-sky images
 - timelapse
-- wybrane dumpy nocy
-- materiały do późniejszej obróbki
+- top zdjęcia nocy
+- wybrane materiały astro
 ```
 
-NAS nie może być wymagany do normalnego działania. Jeśli NAS padnie:
+Nie powinno się trzymać aktywnej bazy na NAS-ie.
+
+Hub musi działać, nawet jeśli NAS zniknie z sieci na godzinę.
+
+Dobra zasada:
 
 ```text
-hub nadal działa
-archiwizacja przechodzi w pending
-sync wraca, gdy NAS wróci
+local SSD = runtime
+NAS = backup/archive
 ```
 
 ---
 
-## 18. Media: zdjęcia i timelapse
+## 18. Backup i restore
 
-Zdjęć i filmów nie wkładamy do SQLite. Baza trzyma tylko indeks.
-
-Tabela `media_assets` może mieć:
-
-```text
-captured_at
-site
-node
-device_key
-media_type
-local_path
-archive_path
-thumbnail_path
-score
-tags_json
-archive_status
-keep_forever
-metadata_json
-```
-
-Przykładowy flow all-sky:
-
-```text
-noc:
-  terminal zbiera klatki lokalnie
-
-rano:
-  wybiera top zdjęcia
-  generuje miniatury
-  robi timelapse
-  zapisuje metadane
-  wysyła najlepsze rzeczy na NAS
-
-po X dniach:
-  usuwa zwykłe raw frames
-  zostawia top/timelapse/indeks
-```
-
-Zasada:
-
-```text
-Nie robimy z NAS-a cyfrowego śmietnika.
-```
-
----
-
-## 19. All-sky live: poziomy trudności
-
-Nie trzeba od razu robić streamu klasy telewizja.
-
-Poziom 1:
-
-```text
-latest.jpg odświeżany co kilka sekund
-```
-
-Poziom 2:
-
-```text
-MJPEG stream
-```
-
-Poziom 3:
-
-```text
-HLS stream z segmentami wideo
-```
-
-MVP all-sky powinien zacząć od `latest.jpg`. To daje efekt live-ish i jest dużo prostsze niż pełny streaming.
-
----
-
-## 20. Moduły przyszłości
-
-Core nie powinien znać szczegółów każdej domeny. Domeny są modułami.
-
-Przyszłe moduły:
-
-```text
-rtl433
-weather
-system_metrics
-media
-allsky
-astro
-garden
-lightning
-archive
-mqtt
-agents
-observability
-```
-
-Dodanie nowego czujnika powinno wyglądać tak:
-
-```text
-1. Zobacz raw JSON.
-2. Dodaj device do configu.
-3. Dodaj mapping metryk, jeśli potrzeba.
-4. Uruchom replay/live.
-5. Sprawdź measurements.
-6. Dodaj kartę dashboardu, jeśli chcesz.
-```
-
----
-
-## 21. Agenty i daemony
-
-Hub zbiera, zapisuje i wystawia dane. Inne maszyny mogą mieć lekkich agentów.
+Backup musi być prosty.
 
 Przykład:
 
-```text
-Głębokie core hub:
-  API
-  WWW
-  DB
-  rtl_433
-  storage
-
-Astro PC:
-  outpost-agent
-  zbiera INDI/Ekos/system stats
-  wysyła dane do huba
-
-Garden node:
-  soil moisture
-  lightning sensor
-  heartbeat
+```bash
+outpost backup
 ```
 
-Agent wysyła JSON do huba przez HTTP ingest albo MQTT.
-
-Najprostszy wariant:
+Backup powinien zawierać:
 
 ```text
-agent → HTTP POST /api/v1/ingest → hub
+- SQLite DB
+- config
+- opcjonalnie metadata media
 ```
 
-Docelowy wariant IoT:
+Sekrety mogą być backupowane osobno i ostrożniej.
+
+Restore:
+
+```bash
+outpost restore backup-2026-07-09.tar.gz
+```
+
+Backup SQLite powinien używać bezpiecznej metody, np. SQLite backup API albo `.backup`, a nie zwykłego `cp` działającej bazy.
+
+Docelowo status backupu powinien być częścią stanu Outposta: kiedy wykonano ostatni poprawny backup, gdzie został zapisany i czy jego wiek przekracza skonfigurowany próg ostrzegawczy.
+
+---
+
+## 19. Media — pliki, nie BLOB-y
+
+Zdjęcia all-sky nie powinny trafiać jako BLOB do SQLite.
+
+Lepszy model:
 
 ```text
-agent → MQTT → hub subscriber
+/var/lib/sky-weather-outpost/media/
+  allsky/
+    2026/
+      07/
+        09/
+          frame-000001.jpg
+```
+
+W bazie:
+
+```text
+media_assets
+- id
+- site
+- node
+- type
+- path
+- captured_at
+- score
+- archive_status
+```
+
+Baza wie, gdzie jest plik i jakie ma metadata. Sam obraz leży na filesystemie.
+
+---
+
+## 20. All-sky: trzy poziomy "live"
+
+"Live" może znaczyć trzy różne rzeczy.
+
+### Poziom 1: latest.jpg
+
+Najprostsze:
+
+```text
+kamera -> latest.jpg -> WWW
+```
+
+Odświeżanie co kilka sekund.
+
+### Poziom 2: MJPEG
+
+Pseudo-streaming:
+
+```text
+kamera -> JPEG frames -> MJPEG endpoint
+```
+
+### Poziom 3: HLS/WebRTC
+
+Prawdziwszy streaming, ale dużo bardziej skomplikowany.
+
+Na start najlepszy jest poziom 1.
+
+---
+
+## 21. Top 3 zdjęcia nocy
+
+Każda noc może generować setki albo tysiące klatek.
+
+Nie chcemy wszystkiego trzymać wiecznie.
+
+Pipeline:
+
+```text
+capture
+  -> local frames
+  -> scoring
+  -> top candidates
+  -> keep/archive
+  -> timelapse
+  -> retention cleanup
+```
+
+Na początku scoring może być banalny albo ręczny. Później można dodać:
+
+```text
+meteor score
+star count
+cloud score
+brightness anomaly
+motion streak
 ```
 
 ---
 
-## 22. MQTT
-
-MQTT nie musi być w v0.1, ale warto pamiętać, że bardzo dobrze pasuje do tego projektu.
-
-Docelowy przepływ:
-
-```text
-rtl_433
-  ↓
-MQTT broker
-  ↓
-Sky Weather Outpost
-  ↓
-SQLite/API/dashboard
-```
-
-Zaleta: aplikacja nie musi bezpośrednio odpalać `rtl_433` ani dotykać SDR-a. Odbiera tylko wiadomości.
-
-Na start wygodniejszy jest jednak JSONL replay i `rtl_433 -F json -C si`.
-
----
-
-## 23. Docker, systemd i Kubernetes
-
-Projekt powinien być gotowy na różne sposoby uruchamiania.
-
-### Local dev
-
-```text
-uvicorn / fastapi dev
-config lokalny
-JSONL replay
-```
-
-### Native edge
-
-```text
-systemd + Python venv + SQLite
-```
-
-### Docker Compose
-
-```text
-outpost
-mosquitto
-prometheus
-grafana
-caddy
-```
-
-### Kubernetes
-
-Kubernetes nie jest celem v0.1, ale aplikacja powinna być gotowa na:
-
-```text
-/healthz
-/readyz
-/metrics
-config przez env/config file
-dane na volume
-logi na stdout
-graceful shutdown
-```
-
-Nie implementujemy Kubernetesa od razu. Projektujemy tak, żeby kiedyś nie bolało.
-
----
-
-## 24. Deployment i katalogi
-
-W trybie systemowym dobry układ to:
-
-```text
-/opt/sky-weather-outpost/          kod aplikacji
-/etc/sky-weather-outpost/          config i secrets
-/var/lib/sky-weather-outpost/      baza, runtime, cache
-/var/log/sky-weather-outpost/      logi
-/mnt/nas/outpost/                  archiwum/backup
-```
-
-W trybie Docker:
-
-```text
-/app
-/config
-/data
-/logs
-/archive
-```
-
-Dzięki temu migracja jest prosta: kod jest osobno, dane są osobno, config jest osobno.
-
----
-
-## 25. Instalator i skrypty
-
-Projekt powinien mieć skrypty:
-
-```text
-scripts/install.sh
-scripts/update.sh
-scripts/backup.sh
-scripts/restore.sh
-scripts/healthcheck.sh
-scripts/capture-rtl433.sh
-```
-
-Cel instalatora:
-
-```text
-sudo ./scripts/install.sh --config config/examples/glebokie.yaml
-```
-
-Skrypt powinien:
-
-```text
-- sprawdzić zależności
-- utworzyć katalogi
-- utworzyć użytkownika systemowego
-- przygotować venv
-- zainstalować zależności
-- skopiować config
-- uruchomić migracje
-- stworzyć systemd service
-- odpalić aplikację
-```
-
-To nie musi być gotowe w pierwszym commicie, ale musi być przewidziane.
-
----
-
-## 26. Konfiguracja
-
-YAML jest dobry do configu, bo łatwo go czytać i edytować.
+## 22. Retencja media
 
 Przykład:
 
 ```yaml
-site:
-  id: krakow
-  name: "Kraków Lab"
-  type: lab
-  timezone: Europe/Warsaw
-
-node:
-  id: krakow-lab-t620
-  role: hub
-
-modules:
-  rtl433:
-    enabled: true
-    mode: jsonl_replay
-    replay_path: ./data/raw_data/rtl433-live.jsonl
-
-  system_metrics:
-    enabled: true
-    interval_seconds: 60
-
-storage:
-  sqlite_path: ./data/outpost.sqlite
-
-devices:
-  - key: rtl433:inFactory-TH:1:166
-    name: "Kraków weather shield"
-    type: weather_sensor
-    public: true
-    metrics:
-      - temperature
-      - humidity
+media:
+  raw_retention_days: 7
+  keep_top_per_night: 3
+  keep_timelapse: true
 ```
 
-Zasada:
+Czyli:
 
 ```text
-Nie hardcodujemy Krakowa, Głębokiego ani ID czujnika w core.
+pełne raw frames: 7 dni
+najlepsze zdjęcia: długo
+finalny timelapse: długo
 ```
+
+NAS nie powinien zamienić się w śmietnik wszystkich klatek.
 
 ---
 
-## 27. JSONL replay
+## 23. Astro agent
 
-Tryb replay jest bardzo ważny dla developmentu.
+Komputer od teleskopu może mieć własnego lekkiego agenta.
 
-Masz plik:
-
-```text
-data/raw_data/rtl433-live.jsonl
-```
-
-W nim jeden JSON na linię.
-
-Dzięki replay możesz testować parser, bazę, API i dashboard bez czekania na nowe ramki z radia.
-
-Kolejność implementacji powinna być:
+Agent może czytać:
 
 ```text
-1. JSONL replay
-2. live rtl_433 stdout
-3. MQTT
+INDI
+Ekos
+system metrics
 ```
 
-To ogranicza liczbę rzeczy debugowanych naraz.
+I wysyłać:
+
+```text
+camera_temperature
+cooler_power
+mount_state
+guiding_rms_total
+filter_name
+focuser_position
+session_state
+```
+
+Do huba przez HTTP albo MQTT.
+
+Najważniejsze: agent nie musi mieć własnej bazy. Może tylko wysyłać telemetry.
 
 ---
 
-## 28. Deduplication
+## 24. Garden node
 
-Czujniki radiowe często wysyłają tę samą ramkę kilka razy.
-
-Przykład:
+Ogród może mieć:
 
 ```text
-20:30:04 inFactory-TH ID 166
-20:30:05 inFactory-TH ID 166
-20:30:05 inFactory-TH ID 166
+soil moisture
+soil temperature
+air temperature
+humidity
 ```
 
-Raw events mogą to zapisać, ale measurements nie powinny mieć pięciu identycznych kropek na wykresie.
+To dalej są zwykłe measurements.
 
-Deduplication może działać po:
-
-```text
-device_key
-metric/value set
-krótkie okno czasu, np. 5-10 sekund
-```
+Nie trzeba robić osobnej aplikacji "garden system".
 
 ---
 
-## 29. Unknown devices
+## 25. Lightning sensor
 
-`rtl_433` łapie wszystko z eteru. Obce czujniki są normalne.
-
-Zasada:
-
-```text
-unknown device może wejść do raw/debug,
-ale nie do public API i nie do głównych measurements.
-```
-
-Statusy urządzeń:
-
-```text
-unknown_seen
-ignored
-known
-public
-private
-```
-
-To chroni dashboard przed śmietnikiem i przypadkowym pokazywaniem cudzych sensorów.
-
----
-
-## 30. Jednostki i normalizacja
-
-Baza powinna używać standardowych jednostek:
-
-```text
-temperature: C
-humidity: %
-pressure: hPa
-rain: mm
-wind_speed: m/s albo km/h
-distance: km
-battery_ok: bool
-battery_voltage: V
-soil_moisture: %
-```
-
-Raw event zostaje nietknięty. Measurement jest normalizowany.
-
-Jeśli przyjdzie:
+AS3935 albo podobny sensor może generować event:
 
 ```json
-{"temperature_F": 68.1}
+{
+  "type": "lightning",
+  "distance_km": 12,
+  "energy": 18342
+}
 ```
 
-measurement zapisuje:
+To może trafić do `events` albo `measurements`.
+
+Dashboard może pokazać:
 
 ```text
-metric: temperature
-value: 20.06
-unit: C
+Last lightning: 12 km, 4 min ago
 ```
 
 ---
 
-## 31. Timezone i timestampy
+## 26. MQTT — kiedy ma sens
 
-Czas jest ważny.
-
-Warto rozróżniać:
-
-```text
-measured_at  - czas według źródła
-received_at  - czas, kiedy hub dostał dane
-stored_at    - czas zapisu w bazie
-```
-
-W bazie najlepiej trzymać ISO z offsetem albo UTC. W UI można pokazywać lokalny czas site’u.
-
-Config site’u powinien mieć timezone:
-
-```yaml
-site:
-  timezone: Europe/Warsaw
-```
-
----
-
-## 32. Retencja danych
-
-Nie wszystkie dane trzymamy wiecznie.
+MQTT jest świetne dla wielu małych urządzeń.
 
 Przykład:
 
 ```text
-measurements:
-  długo
-
-raw_events:
-  7-30 dni
-
-logs:
-  rotacja
-
-allsky raw frames:
-  3-7 dni lokalnie
-
-top photos:
-  długo na NAS
-
-timelapse:
-  długo na NAS
-
-backups:
-  według miejsca na NAS
+garden-node -> MQTT -> hub
+astro-agent -> MQTT -> hub
+rtl_433 -> MQTT -> hub
 ```
 
-To chroni przed sytuacją, w której all-sky zapełni dysk po miesiącu.
+Ale v0.1 nie potrzebuje MQTT.
 
----
-
-## 33. Backup i restore
-
-Backup bez restore to zaklęcie ochronne, nie system.
-
-Minimum:
+Najpierw:
 
 ```text
-backup SQLite
-backup configów
-backup ważnych metadanych
-backup top zdjęć/timelapse
-```
-
-Restore powinien umieć:
-
-```text
-- odtworzyć config
-- odtworzyć bazę
-- uruchomić migracje
-- sprawdzić health
-```
-
-Dobrze mieć skrypty:
-
-```text
-scripts/backup.sh
-scripts/restore.sh
-```
-
----
-
-## 34. Observability: Grafana i Prometheus
-
-Grafana nie jest głównym dashboardem użytkowym. Jest panelem technicznym.
-
-Główny dashboard:
-
-```text
-ładny, prosty, jedna strona
-pogoda/media/status
-```
-
-Grafana:
-
-```text
-monitoring techniczny
-system metrics
-alerty
-historia operacyjna
-```
-
-W przyszłości aplikacja powinna mieć endpoint:
-
-```text
-/metrics
-```
-
-w formacie Prometheus.
-
-Przykładowe metryki:
-
-```text
-outpost_node_online{site="glebokie",node="glebokie-core-t620"} 1
-outpost_measurement_age_seconds{site="krakow",device="rtl433:inFactory-TH:1:166"} 42
-outpost_disk_free_bytes{site="glebokie",node="glebokie-core-t620"} 183400000000
-```
-
----
-
-## 35. MVP v0.1
-
-Pierwszy milestone ma być mały.
-
-Zakres:
-
-```text
-Kraków Lab
-inFactory-TH id 166
 JSONL replay
-SQLite
-raw_events
-measurements
-devices
-nodes
-basic logging
-/api/v1/public/current
-/api/v1/internal/health
-prosty dashboard
-```
-
-Nie robimy w v0.1:
-
-```text
-all-sky
-MQTT
-Grafana
-Kubernetes
-NAS archive
-agents
-astro telemetry
-garden sensors
-actions/rules
-```
-
-To nie znaczy, że o nich zapominamy. One są w roadmapie, ale nie w pierwszej warstwie lakieru.
-
----
-
-## 36. Jak pracować z Copilotem/Claude
-
-Copilot/Claude powinien dostaawać małe zadania.
-
-Dobry prompt:
-
-```text
-Read README.md, ARCHITECTURE.md, ROADMAP.md, MVP.md and copilot-instructions.md.
-Do not implement features outside MVP v0.1.
-Create the initial Python/FastAPI project skeleton with config loading, SQLite migration foundation, structured logging, health endpoint and public current placeholder endpoint.
-```
-
-Zły prompt:
-
-```text
-Zrób cały projekt.
-```
-
-Zasada:
-
-```text
-1 task = 1 mały branch = 1 sensowny commit
-```
-
-Przykładowe branche:
-
-```text
-feature/v0.1-app-skeleton
-feature/config-loader
-feature/sqlite-migrations
-feature/jsonl-replay
-feature/public-current-api
-```
-
----
-
-## 37. Jak myśleć o rozwoju
-
-Projekt ma rosnąć przez dokładanie modułów, nie przez przepisywanie core.
-
-Nowy czujnik:
-
-```text
-config + normalizer + optional dashboard card
-```
-
-Nowy site:
-
-```text
-nowy config
-```
-
-Nowy node:
-
-```text
-node registry + heartbeat + ingest token
-```
-
-Nowe media:
-
-```text
-media_assets + storage path + dashboard card
-```
-
-Nowa automatyka:
-
-```text
-events + rules + commands
-```
-
-Ale actions/rules są tematem na później.
-
----
-
-## 38. Analogia warsztatowa
-
-Dzisiejsze repo to podkład pod malowanie.
-
-```text
-oczyszczona rama      → rozmowa i wymagania
-epoksyd              → architektura
-szpachla             → roadmapa i MVP
-grunt                → copilot-instructions
-maskowanie           → security/config/deployment/runbook
-pierwszy lakier      → v0.1 app skeleton
-klar                 → dashboard i operacyjność
-```
-
-Nie malujemy na rdzę. Najpierw fundament.
-
----
-
-## 39. Najważniejsze zasady projektu
-
-```text
-1. Core is a generic local hub, not a weather app.
-2. Build small, design wide.
-3. Use JSON for ingest.
-4. Use YAML for config.
-5. Use site/node/device everywhere.
-6. Store raw events separately from measurements.
-7. Keep measurements generic: metric/value/unit.
-8. Keep media as files, indexed in DB.
-9. Keep secrets out of repo.
-10. Public API is read-only and safe.
-11. Internal API requires token.
-12. Logging, health and heartbeat are core features.
-13. NAS is archive/backup, not active DB.
-14. SQLite is enough for v0.1.
-15. Docker/Kubernetes-ready does not mean Kubernetes-first.
-16. Kraków is lab, Głębokie is field outpost.
-17. Every milestone must end with a working system.
-```
-
----
-
-## 40. Co dalej
-
-Najbliższy realny krok:
-
-```text
-feature/v0.1-app-skeleton
-```
-
-Pierwszy kod powinien stworzyć:
-
-```text
-- FastAPI app
-- config loader
-- domain models
-- SQLite migration foundation
-- structured logging
-- health endpoint
-- public current placeholder endpoint
-- minimal tests
 ```
 
 Potem:
 
 ```text
-JSONL replay → normalize inFactory-TH → SQLite → current API → dashboard
+rtl_433 stdout
 ```
 
-Dopiero gdy Kraków Lab pokazuje temperaturę i wilgotność z własnej stacji, projekt dostaje prawo do kolejnych bajerów.
+Dopiero później MQTT.
 
 ---
 
-## 41. Dobranoc
+## 27. Dlaczego nie mikroserwisy
 
-Sky Weather Outpost zaczyna jako mały terminal, czujnik temperatury i wilgotności oraz plik SQLite.
+Bo mamy kilka terminali, nie Netflixa.
 
-Ale mentalnie jest posterunkiem:
+Na start:
 
 ```text
-widzi pogodę,
-widzi niebo,
-widzi swoje node’y,
-widzi zdrowie systemu,
-przechowuje historię,
-wystawia API,
-i z czasem przyjmie wszystko, co sobie jeszcze wymyślisz.
+modular monolith
 ```
 
-Nie trzeba budować wszystkiego naraz. Trzeba zbudować pierwszy działający kawałek tak, żeby następny nie wymagał rozbiórki do gołej ramy.
+Czyli jedna aplikacja, ale logicznie podzielona:
 
-Koniec rozdziału. Terminal na strychu czeka.
+```text
+app/
+  core/
+  config/
+  storage/
+  ingest/
+  normalizers/
+  api/
+  web/
+  services/
+```
+
+To daje porządek bez kosztu mikroserwisów.
+
+---
+
+## 28. Agent to nie mikroserwis
+
+Agent może być osobnym procesem na innym komputerze, ale nie znaczy, że cały system jest mikroserwisowy.
+
+Agent ma prostą rolę:
+
+```text
+read local hardware
+normalize or package data
+send to hub
+heartbeat
+retry
+```
+
+Hub nadal jest centrum.
+
+---
+
+## 29. Docker — po co później
+
+Docker daje:
+
+```text
+powtarzalne środowisko
+łatwiejszy deploy
+łatwiejsze dependency management
+```
+
+Ale sprzęt typu SDR i USB komplikuje kontenery.
+
+Dlatego:
+
+```text
+v0.1 -> native systemd
+later -> Docker Compose
+```
+
+---
+
+## 30. Kubernetes — nie teraz, ale nie blokujmy
+
+Kubernetes nie jest potrzebny na start.
+
+Ale aplikacja może być projektowana tak, żeby później nie bolało:
+
+```text
+config outside code
+secrets outside code
+stdout logs
+health endpoint
+readiness endpoint
+metrics endpoint
+persistent data path
+stateless API where possible
+```
+
+To jest lift-and-shift friendly.
+
+---
+
+## 31. systemd
+
+Na Debianie najlepszy start to systemd.
+
+Przykład:
+
+```bash
+sudo systemctl status sky-weather-outpost
+sudo systemctl restart sky-weather-outpost
+journalctl -u sky-weather-outpost -f
+```
+
+Systemd daje:
+
+```text
+autostart
+automatic restart
+logs
+service status
+```
+
+CLI Outposta może później opakować część tych informacji w wygodniejszą prezentację, ale systemd nadal pozostaje właściwym menedżerem procesu.
+
+---
+
+## 32. Installer
+
+`install.sh` powinien:
+
+```text
+- sprawdzić system
+- sprawdzić dependencies
+- stworzyć usera
+- stworzyć katalogi
+- stworzyć venv
+- zainstalować app
+- zainstalować config
+- wykonać migracje
+- zainstalować systemd unit
+- uruchomić healthcheck
+```
+
+Installer powinien być idempotentny.
+
+Czyli drugie uruchomienie nie powinno niszczyć instalacji.
+
+---
+
+## 33. Update
+
+`update.sh` może robić:
+
+```text
+git pull
+backup DB
+pip install/update
+migrations
+restart service
+healthcheck
+```
+
+Jeśli migracja padnie, update powinien się zatrzymać.
+
+---
+
+## 34. Config jako produkt
+
+Config nie jest tylko plikiem technicznym. To opis konkretnego Outposta.
+
+Przykład:
+
+```yaml
+site:
+  id: glebokie
+  name: Głębokie Outpost
+
+node:
+  id: glebokie-core-t620
+
+modules:
+  rtl433:
+    enabled: true
+
+  allsky:
+    enabled: true
+
+  system_metrics:
+    enabled: true
+```
+
+Inny site może używać tego samego kodu z innym YAML-em.
+
+---
+
+## 35. JSONL replay — genialnie prosty dev mode
+
+Zamiast programować z SDR-em podpiętym do desktopa:
+
+```text
+rtl_433 capture
+   -> JSONL file
+   -> copy to dev PC
+   -> replay
+```
+
+To daje deterministyczne testy.
+
+Możesz odpalać ten sam payload 100 razy.
+
+---
+
+## 36. Deduplikacja
+
+Sensory radiowe często wysyłają ten sam frame kilka razy.
+
+Nie chcemy:
+
+```text
+20.1 C
+20.1 C
+20.1 C
+```
+
+jako trzech pomiarów w sekundę.
+
+Dedupe może używać:
+
+```text
+device_key
+metric
+value
+time window
+```
+
+Raw eventy można zachować wszystkie, a measurements deduplikować.
+
+---
+
+## 37. Unknown devices
+
+SDR usłyszy sąsiadów.
+
+Nie chcemy pokazywać ich publicznie.
+
+Ale warto je logować wewnętrznie:
+
+```text
+unknown rtl433 device detected
+model=Nexus-TH
+id=93
+```
+
+To może być ciekawe diagnostycznie.
+
+---
+
+## 38. Jednostki
+
+W środku warto trzymać jednostki jawnie:
+
+```text
+temperature C
+wind_speed m/s
+rain mm
+pressure hPa
+humidity %
+```
+
+Nie zakładać, że `20.1` zawsze znaczy stopnie Celsjusza.
+
+---
+
+## 39. Czas i timezone
+
+Site ma timezone:
+
+```yaml
+site:
+  timezone: Europe/Warsaw
+```
+
+W bazie najlepiej trzymać timestamp w UTC albo timezone-aware ISO8601.
+
+Dashboard może konwertować na lokalny czas site.
+
+To ważne przy zmianie czasu lato/zima.
+
+---
+
+## 40. Retencja danych
+
+Nie wszystko musi być przechowywane wiecznie.
+
+Przykład:
+
+```text
+raw_events: 7-30 dni
+measurements: długo
+system metrics high resolution: 30 dni
+aggregates: długo
+media raw: 7 dni
+selected media: długo
+```
+
+Retencja powinna być konfigurowalna.
+
+---
+
+## 41. Backup
+
+Backup powinien być automatyczny i sprawdzalny.
+
+Nie wystarczy:
+
+```text
+backup istnieje
+```
+
+Lepiej:
+
+```text
+backup timestamp
+backup size
+backup status
+backup destination
+```
+
+I okresowo testować restore.
+
+---
+
+## 42. Grafana i Prometheus
+
+To przyszłość, nie MVP.
+
+Prometheus zbiera metrics:
+
+```text
+outpost_sensor_last_seen_seconds
+outpost_disk_free_bytes
+outpost_node_up
+outpost_backup_age_seconds
+```
+
+Grafana robi techniczne dashboardy.
+
+Ale publiczny dashboard Outposta nadal jest własny.
+
+---
+
+## 43. Energy, PV i EV charging
+
+Energia dobrze pasuje do części `Outpost`, bo opisuje kondycję i przepływy energii fizycznej instalacji.
+
+Przykładowe przyszłe dane:
+
+```text
+pv_power
+pv_energy_today
+grid_import_power
+grid_export_power
+battery_state_of_charge
+battery_charge_power
+ev_charging_power
+ev_session_energy
+```
+
+Integracje powinny być adapterami lub agentami. Core nie powinien wiedzieć, czy falownik jest konkretnego producenta.
+
+Na początku integracja jest read-only: Outpost obserwuje i zapisuje. Sterowanie ładowaniem czy energią należy do późniejszej, jawnie zaprojektowanej warstwy control/automation.
+
+---
+
+## 44. Home Assistant i smart-home
+
+Home Assistant może być bardzo dobrym źródłem informacji o stanie fizycznego Outposta.
+
+Outpost może pobierać wybrane encje, np.:
+
+```text
+shutter_position
+switch_state
+technical_temperature
+integration_health
+```
+
+i mapować je na własne generic measurements/status/events.
+
+W drugą stronę HA może dostać z Outposta np. pogodę, Astro Score, stan all-sky czy node health.
+
+Granica odpowiedzialności jest ważna:
+
+```text
+Sky Weather Outpost = telemetry / history / correlation / presentation
+Home Assistant      = home automation / device control
+```
+
+Dzięki temu nie budujemy drugiego Home Assistanta tylko dlatego, że chcemy zobaczyć stan rolety obok produkcji PV.
+
+---
+
+## 45. Jak rozwijać projekt bez chaosu
+
+Każdy nowy pomysł powinien przejść pytania:
+
+```text
+Czy to należy do Sky, Weather albo fizycznego Outpostu?
+Czy da się to opisać jako device / measurement / event / media / status?
+Czy to wymaga nowego core concept?
+Czy wystarczy adapter/module?
+Czy to jest potrzebne w obecnym milestone?
+```
+
+Jeśli odpowiedź brzmi:
+
+```text
+"fajny pomysł, ale nie teraz"
+```
+
+to trafia do Future Modules.
+
+---
+
+## 46. Jak pracować z Copilotem
+
+Przed większym zadaniem Copilot powinien przeczytać:
+
+```text
+README.md
+ARCHITECTURE.md
+ROADMAP.md
+MVP.md
+TECH_STACK.md
+copilot-instructions.md
+```
+
+Dobry prompt:
+
+```text
+Read the project architecture and roadmap first.
+Implement only MVP v0.1 scope.
+Do not introduce MQTT, Docker, Kubernetes, media processing or future modules.
+Keep the core generic and configurable.
+Add tests.
+```
+
+---
+
+## 47. Najważniejsze zasady projektu
+
+Jeśli masz zapamiętać tylko kilkanaście rzeczy:
+
+```text
+1. Build small, design wide.
+2. Sky / Weather / Outpost opisują trzy widoki tej samej fizycznej instalacji.
+3. Core jest generic.
+4. Site, node, device są podstawą świata.
+5. Raw events i measurements są osobno.
+6. JSON jest kontraktem danych.
+7. YAML jest configiem.
+8. SQLite jest lokalne.
+9. NAS jest backup/archive.
+10. Media są plikami.
+11. API jest versioned.
+12. Public i internal są rozdzielone.
+13. CLI i WWW korzystają z tego samego modelu/API stanu.
+14. Logi, health i backup są core features.
+15. Hardware-specific logic siedzi w adapterach/agentach.
+16. Home Assistant steruje; Outpost obserwuje i koreluje.
+17. Native systemd first.
+18. Docker/Kubernetes later.
+19. MVP ma być naprawdę MVP.
+20. Future Modules nie rozszerzają v0.1.
+```
+
+---
+
+## 48. Ostateczny mentalny model
+
+```text
+                      SKY WEATHER OUTPOST
+                               |
+            +------------------+------------------+
+            |                  |                  |
+           SKY              WEATHER            OUTPOST
+            |                  |                  |
+      sky / astro         environment        site health
+      observations        and weather        infrastructure
+            |                  |                  |
+            +------------------+------------------+
+                               |
+                        generic core
+                               |
+             site / node / device / event
+          measurement / media_asset / status
+                               |
+              SQLite / API / services / agents
+                               |
+                   +-----------+-----------+
+                   |                       |
+                  WWW                     CLI
+```
+
+Jeśli ten obraz pozostanie prawdziwy, projekt może rosnąć bardzo długo bez zmiany swojej tożsamości.
+
+Na początku będzie to termometr z API.
+
+Potem stacja pogodowa.
+
+Potem all-sky.
+
+Potem astro-agent.
+
+Potem być może energia, Home Assistant i kolejne elementy infrastruktury.
+
+Ale nadal będzie to ten sam system:
+
+```text
+Sky Weather Outpost
+```
+
+czyli mały cyfrowy posterunek, który wie, co dzieje się nad nim, wokół niego i z nim samym.
