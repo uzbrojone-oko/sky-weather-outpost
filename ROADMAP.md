@@ -39,7 +39,15 @@ Goal: first living outpost.
 - systemd unit.
 - Config/secrets split.
 - Internal API token.
-- Healthcheck CLI/script.
+- Shared internal status model and `GET /api/v1/internal/status` endpoint as the common runtime source for CLI and authenticated web status views.
+- `outpost status` for a concise current-state view with readable status indicators.
+- `outpost health` / healthcheck CLI for application and API health.
+- `outpost doctor` for deeper active diagnostics with pass/warn/fail checks and actionable failure details.
+- Initial diagnostic checks for service/process state, database access and migrations, sensor freshness, disk space and configuration validity.
+- Operational checks for web/API reachability and reverse-proxy state when configured.
+- HTTPS/TLS status including certificate validity and remaining lifetime; certificate issuance and renewal remain the responsibility of Caddy/ACME or the configured reverse proxy rather than Outpost itself.
+- Backup-on-demand through the CLI and backup freshness/status exposed through the shared status model.
+- Authenticated web `System / Outpost Status` view reusing the same status endpoint as the CLI rather than implementing separate health logic.
 - Safe database migration workflow.
 - Native installation validation on a clean Debian/Ubuntu host.
 
