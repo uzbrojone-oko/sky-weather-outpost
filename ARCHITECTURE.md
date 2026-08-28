@@ -6,6 +6,18 @@ Sky Weather Outpost is a configurable local hub for telemetry, environment data,
 
 It must not be designed as a weather-only application. Weather, all-sky, astro, garden, lightning, energy and external/smart-home integrations are modules/domains. The core stays generic and vendor-neutral.
 
+### Sky / Weather / Outpost domain model
+
+The project name describes three complementary views of one physical installation:
+
+- **Sky** covers sky and astronomy observations: all-sky media, astro telemetry, cloud-related information, observation readiness and derived products such as Astro Score.
+- **Weather** covers local environmental telemetry: temperature, humidity, wind, rain, dew conditions, lightning, garden/environment sensors and weather history.
+- **Outpost** covers the health and infrastructure of the installation itself: nodes, services, storage, backup, network and web reachability, TLS state, NAS, energy/PV, EV charging and selected smart-home/site state.
+
+`Outpost` is not a catch-all for unrelated features. It represents the physical site as an autonomous technical installation. A complete outpost should be able to describe both its surroundings and its own operational condition.
+
+These domains are presentation and product concepts, not separate core architectures. They all map onto the same generic `site`, `node`, `device`, `measurement`, `event`, `media_asset` and `status` model. Automation and active device control remain outside the generic telemetry core and should use a separately designed control layer or an external automation platform such as Home Assistant.
+
 ## Core model
 
 Primary concepts:
