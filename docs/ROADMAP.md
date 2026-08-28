@@ -1,12 +1,12 @@
 # Roadmap
 
-## v0.1 — Kraków Lab MVP
+## v0.1 — City Lab MVP
 
 Goal: first living outpost.
 
-- Config loader with `krakow.yaml`.
+- Config loader with `city-lab.yaml`.
 - JSONL replay input.
-- Real sanitized `rtl_433` fixtures captured from the Kraków sensor.
+- Real sanitized `rtl_433` fixtures captured from the City Lab sensor.
 - `rtl_433` raw JSON mapping for `inFactory-TH` id `166`, channel `1`.
 - SQLite schema and migrations.
 - Tables: `nodes`, `devices`, `raw_events`, `measurements`, `system_events`, `schema_migrations`.
@@ -62,9 +62,9 @@ Goal: first living outpost.
 - Simple dew-risk indicator.
 - Data quality flags for stale, suspect and invalid readings.
 
-## v0.5 — Głębokie field config
+## v0.5 — Core Bunker field config
 
-- `glebokie.yaml` example.
+- `core-bunker.yaml` example.
 - Bresser 5-in-1 mapping based on a real captured payload.
 - Wind/rain metrics.
 - NAS archive/backup config placeholders.
@@ -119,7 +119,7 @@ Goal: first living outpost.
 - One-page dashboard.
 - Local-first storage.
 - Operational documentation.
-- Ready to run on Kraków Lab and Głębokie Field Outpost.
+- Ready to run on City Lab and Core Bunker example deployments.
 
 ## Future modules
 
