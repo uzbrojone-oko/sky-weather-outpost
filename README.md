@@ -2,7 +2,7 @@
 
 Sky Weather Outpost is a configurable local outpost hub for collecting, normalizing, storing and exposing telemetry, environmental sensor data, node health and future sky/media observations.
 
-The first target is a small Kraków Lab MVP: read temperature and humidity from one known `rtl_433` sensor, store normalized measurements in SQLite, expose a simple API, and render a one-page dashboard.
+The first target is a small City Lab MVP: read temperature and humidity from one known `rtl_433` sensor, store normalized measurements in SQLite, expose a simple API, and render a one-page dashboard.
 
 The long-term direction is wider: weather stations, all-sky media, node health, astro telemetry, garden sensors, lightning detection, NAS archiving, energy/PV and EV telemetry, Home Assistant/smart-home integration, optional observability integrations and future distributed agents.
 
@@ -31,7 +31,7 @@ The project name is also its scope model:
 
 ## MVP v0.1
 
-Kraków Lab only:
+City Lab only:
 
 - `inFactory-TH` sensor via `rtl_433` JSON/JSONL.
 - Temperature and humidity.
@@ -45,11 +45,11 @@ Kraków Lab only:
 ## Planned command shape
 
 ```bash
-outpost server --config config/examples/krakow.yaml
-outpost replay data/raw_data/rtl433-live.jsonl --config config/examples/krakow.yaml
-outpost health --config config/examples/krakow.yaml
-outpost migrate --config config/examples/krakow.yaml
-outpost backup --config config/examples/krakow.yaml
+outpost server --config config/examples/city-lab.yaml
+outpost replay data/raw_data/rtl433-live.jsonl --config config/examples/city-lab.yaml
+outpost health --config config/examples/city-lab.yaml
+outpost migrate --config config/examples/city-lab.yaml
+outpost backup --config config/examples/city-lab.yaml
 ```
 
 ## Documentation
