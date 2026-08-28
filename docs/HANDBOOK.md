@@ -1,5 +1,7 @@
 # Sky Weather Outpost Handbook
 
+> **Language note:** This handbook is intentionally written in Polish as an informal, human-friendly learning companion. The canonical project documentation is maintained in English and remains the source of truth for implementation and architectural decisions. An English version of this handbook may be added later if there is a real need for it.
+
 ## Książka na dobranoc dla człowieka, który chciał tylko sprawdzić wilgotność
 
 > Ten dokument tłumaczy, po co istnieje projekt `sky-weather-outpost`, jak ma działać jego architektura i jak myśleć o rozwoju bez zrobienia z małego terminala na strychu potwora klasy enterprise.
