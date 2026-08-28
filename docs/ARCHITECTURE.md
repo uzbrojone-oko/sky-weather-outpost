@@ -22,7 +22,7 @@ These domains are presentation and product concepts, not separate core architect
 
 Primary concepts:
 
-- `site` — installation/location, for example `krakow` or `glebokie`.
+- `site` — installation/location, for example `city-lab` or `core-bunker`.
 - `node` — machine/agent/controller that collects or emits data.
 - `device` — sensor/camera/telescope/computer/component.
 - `measurement` — normalized numeric/time-series value.
@@ -33,12 +33,12 @@ Primary concepts:
 Example hierarchy:
 
 ```text
-site: glebokie
-  node: glebokie-core-t620
+site: core-bunker
+  node: core-bunker-core
     device: rtl433:bresser-5in1:<id>
-  node: glebokie-media-t620
+  node: core-bunker-media
     device: allsky:t7c
-  node: glebokie-astro-pc
+  node: core-bunker-astro
     device: indi:asi533mc-pro
 ```
 
@@ -46,13 +46,13 @@ Future adapters and agents should map vendor- or protocol-specific data onto the
 
 ## Deployment model
 
-Each installation is autonomous. Kraków and Głębokie do not need to communicate with each other.
+Each installation is autonomous. City Lab and Core Bunker do not need to communicate with each other.
 
 The same codebase should run in different places with different configuration:
 
 ```bash
-outpost server --config config/krakow.yaml
-outpost server --config config/glebokie.yaml
+outpost server --config config/examples/city-lab.yaml
+outpost server --config config/examples/core-bunker.yaml
 ```
 
 Local hub is the source of truth for local data. NAS is backup/archive. A future central server may aggregate data but is not required.
@@ -71,8 +71,8 @@ Example normalized payload:
 ```json
 {
   "schema_version": "1.0",
-  "site": "krakow",
-  "node": "krakow-lab-t620",
+  "site": "city-lab",
+  "node": "city-lab-core",
   "source": "rtl433",
   "events": [
     {
@@ -191,7 +191,7 @@ Examples:
 - energy/PV and EV charging status
 - authenticated home/site status from selected smart-home integrations
 
-Kraków Lab may show only a few cards. Głębokie Field Outpost may show many. Public and authenticated/internal views may expose different cards and data.
+City Lab may show only a few cards. Core Bunker may show many. Public and authenticated/internal views may expose different cards and data.
 
 ## Logging and observability
 
