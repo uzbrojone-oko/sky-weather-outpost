@@ -127,6 +127,22 @@ The modules below are possible post-v1.0 directions, not requirements for the cu
 
 Initial integrations should prefer read-only telemetry. Active control and automation should be introduced later through an explicitly designed control layer with authentication and appropriate safety boundaries.
 
+### External telemetry publishing
+
+Sky Weather Outpost may optionally publish a selected subset of locally collected measurements to one or more public weather, environmental or citizen-science services while keeping the local Outpost database as the source of truth.
+
+- Pluggable outbound publisher adapters for third-party services.
+- Start with a single well-supported public service before adding additional targets.
+- Explicit per-site and per-metric allowlists so only intentionally selected data leaves the Outpost.
+- Publish normalized measurements rather than raw radio frames or internal device metadata.
+- Support service-specific authentication, station identifiers and payload mapping outside the generic core.
+- Queue/retry transient delivery failures without blocking local collection or storage.
+- Track publisher health, last successful upload and rejected/failed submissions through the Outpost status model.
+- Respect provider rate limits and required reporting intervals.
+- Keep credentials in the secrets/config layer and never in the public repository.
+- Make external publishing opt-in and independently disableable per target.
+- Evaluate suitable services later, for example public personal-weather-station or environmental-data networks, based on available measurements and their API requirements.
+
 ### Energy, PV and EV charging
 
 #### Photovoltaics and site energy
