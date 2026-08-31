@@ -15,6 +15,22 @@ def test_load_city_lab_example():
     assert config.devices[0].match.model == "inFactory-TH"
 
 
+def test_alternate_site_and_node_are_accepted(tmp_path: Path):
+    source = Path("config/examples/city-lab.yaml").read_text(encoding="utf-8")
+    source = source.replace("id: city-lab", "id: field-lab", 1)
+    source = source.replace('name: "City Lab"', 'name: "Field Lab"', 1)
+    source = source.replace("id: city-lab-core", "id: field-lab-core", 1)
+
+    path = tmp_path / "alternate.yaml"
+    path.write_text(source, encoding="utf-8")
+
+    config = load_config(path)
+
+    assert config.site.id == "field-lab"
+    assert config.site.name == "Field Lab"
+    assert config.node.id == "field-lab-core"
+
+
 def test_missing_required_site_id_is_rejected(tmp_path: Path):
     path = tmp_path / "invalid.yaml"
     path.write_text(
@@ -24,6 +40,15 @@ def test_missing_required_site_id_is_rejected(tmp_path: Path):
     )
 
     with pytest.raises(ConfigError, match="site.id"):
+        load_config(path)
+
+
+def test_unknown_field_is_rejected(tmp_path: Path):
+    source = Path("config/examples/city-lab.yaml").read_text(encoding="utf-8")
+    path = tmp_path / "unknown-field.yaml"
+    path.write_text(source + "\nunexpected_option: true\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="unexpected_option"):
         load_config(path)
 
 
