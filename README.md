@@ -42,6 +42,51 @@ City Lab only:
 - One-page dashboard.
 - Structured logging.
 
+## Development setup
+
+On Debian/Ubuntu, install the required development packages:
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip git
+```
+
+Clone the repository and create a virtual environment:
+
+```bash
+git clone https://github.com/uzbrojone-oko/sky-weather-outpost.git
+cd sky-weather-outpost
+
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Install Sky Weather Outpost in editable mode with development dependencies:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Run the test suite:
+
+```bash
+pytest -v
+```
+
+Validate the example City Lab configuration:
+
+```bash
+outpost config validate config/examples/city-lab.yaml
+```
+
+Expected output:
+
+```text
+Configuration valid
+site: city-lab
+node: city-lab-core
+```
+
 ## Planned command shape
 
 ```bash
