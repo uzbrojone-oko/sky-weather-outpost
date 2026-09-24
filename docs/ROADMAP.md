@@ -11,7 +11,7 @@ Goal: first living outpost.
 - SQLite schema and migrations.
 - Tables: `nodes`, `devices`, `raw_events`, `measurements`, `system_events`, `schema_migrations`.
 - Store raw events separately from normalized measurements.
-- Basic deduplication strategy placeholder.
+- Basic deduplication of repeated frames.
 - Structured logging.
 - `GET /api/v1/public/current`.
 - `GET /api/v1/internal/health`.
@@ -24,7 +24,6 @@ Goal: first living outpost.
 - Live `rtl_433 -F json -C si` stdout input.
 - Known devices filtering from config.
 - Unknown devices tracked internally but not exposed publicly.
-- Dedupe repeated frames.
 - Last seen/stale status.
 - Better operational logs.
 - Terminal system metrics collector.
