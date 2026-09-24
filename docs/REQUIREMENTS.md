@@ -14,6 +14,7 @@ Primary native target:
 - Local SSD or other reliable local storage for the active database.
 
 Development may be performed on Windows, Linux or macOS, but native integration and hardware tests must be validated on Debian/Ubuntu.
+The reference integration environment is a Debian-based bare-metal host (HP t620).
 
 ## 2. Minimum hardware
 

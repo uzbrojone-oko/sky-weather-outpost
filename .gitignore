@@ -19,6 +19,7 @@ build/
 # Local data
 /data/*
 !/data/raw_data/
+/data/raw_data/*
 !/data/raw_data/.gitkeep
 *.sqlite
 *.sqlite3
