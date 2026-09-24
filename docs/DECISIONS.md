@@ -26,3 +26,12 @@ Short records of decisions that changed or clarified the plan. Newest first.
 - **Reference environment.** HP t620 (Debian) is the bare-metal integration lab:
   rtl_433, RTL-SDR, systemd, install.sh, soak tests. Windows is for development
   and JSONL replay only.
+- **Battery status.** `battery_ok` is stored as a regular measurement (`0`/`1`,
+  unit `bool`), so it has history and reaches the dashboard like any other
+  metric. The normalizer stays a pure function: it does not log or raise
+  alerts. Detecting a transition (battery OK -> low), logging it as a
+  `system_event` and alerting belong to a layer above the normalizer.
+- **Normalizer scope.** The rtl_433 normalizer emits only known metrics
+  (`temperature`, `humidity`, `battery_ok`). Other fields stay in the raw event.
+  Judging plausibility (e.g. -35 C from a noise-decoded frame) is not its job;
+  that is the `quality` flag in a later layer.
