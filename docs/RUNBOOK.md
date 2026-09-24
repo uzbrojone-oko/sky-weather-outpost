@@ -30,7 +30,7 @@ curl http://127.0.0.1:8000/api/v1/public/current
 rtl_433 -F json -C si
 ```
 
-For the Kraków sensor:
+For the City Lab sensor:
 
 ```bash
 rtl_433 -F json -C si | jq -c 'select(.model=="inFactory-TH" and .id==166 and .channel==1)'
@@ -39,7 +39,7 @@ rtl_433 -F json -C si | jq -c 'select(.model=="inFactory-TH" and .id==166 and .c
 ## Replay data
 
 ```bash
-outpost replay data/raw_data/rtl433-live.jsonl --config config/examples/krakow.yaml
+outpost replay data/raw_data/rtl433-live.jsonl --config config/examples/city-lab.yaml
 ```
 
 ## Backup
