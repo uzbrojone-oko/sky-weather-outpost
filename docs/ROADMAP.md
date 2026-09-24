@@ -88,7 +88,7 @@ Goal: first living outpost.
 - Docker Compose with optional Prometheus/Grafana.
 - Technical dashboard examples.
 - Node heartbeat visualization.
-- Alerts for stale sensors, low disk space and failed backups.
+- Alerts for stale sensors, low sensor battery, low disk space and failed backups.
 
 ## v0.8 — Agents and distributed nodes
 
