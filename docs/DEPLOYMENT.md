@@ -26,7 +26,7 @@ The first real target is Debian/Ubuntu terminal with Python venv and systemd.
 ```bash
 git clone https://github.com/uzbrojone-oko/sky-weather-outpost.git
 cd sky-weather-outpost
-sudo ./scripts/install.sh --config config/examples/krakow.yaml
+sudo ./scripts/install.sh --config config/examples/city-lab.yaml
 ```
 
 ## systemd

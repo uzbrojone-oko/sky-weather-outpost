@@ -12,14 +12,14 @@ It is not a weather-only app.
 
 Build small, design wide.
 
-The MVP is Kraków Lab temperature/humidity only, but the architecture must not block future all-sky, astro, garden, lightning, media, agents, Docker, Kubernetes or observability modules.
+The MVP is City Lab temperature/humidity only, but the architecture must not block future all-sky, astro, garden, lightning, media, agents, Docker, Kubernetes or observability modules.
 
 ## Architecture rules
 
 - Keep the core generic.
 - Use the model: `site`, `node`, `device`, `measurement`, `event`, `media_asset`, `status`.
 - Weather, all-sky, astro, garden, lightning and system metrics are modules/domains.
-- Do not hardcode Kraków, Głębokie or any device ID in core logic.
+- Do not hardcode site names or device IDs in core logic.
 - Site/node/device definitions must come from configuration.
 - Prefer small modules over large files.
 - Do not create a single giant `app.py`.
