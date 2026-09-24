@@ -15,7 +15,7 @@ Sky Weather Outpost nie jest zwykłą aplikacją pogodową. To lokalny hub danyc
 Pierwsza wersja jest skromna:
 
 ```text
-Kraków Lab:
+City Lab:
   czujnik inFactory-TH
   temperatura
   wilgotność
@@ -27,7 +27,7 @@ Kraków Lab:
 Ale projekt jest zaplanowany szerzej:
 
 ```text
-Głębokie Field Outpost:
+Core Bunker Field Outpost:
   Bresser 5in1
   all-sky camera
   top zdjęcia nocy
@@ -95,7 +95,7 @@ SKY WEATHER OUTPOST
 
 `Outpost` mówi, co dzieje się z samym posterunkiem.
 
-To ostatnie jest ważne. `Outpost` nie oznacza szuflady `inne`. Oznacza fizyczną instalację jako całość. Głębokie Outpost ma swoje komputery, sensory, storage, sieć, zasilanie, usługi i urządzenia. System powinien umieć odpowiedzieć zarówno na pytanie:
+To ostatnie jest ważne. `Outpost` nie oznacza szuflady `inne`. Oznacza fizyczną instalację jako całość. Core Bunker ma swoje komputery, sensory, storage, sieć, zasilanie, usługi i urządzenia. System powinien umieć odpowiedzieć zarówno na pytanie:
 
 ```text
 Jaka jest pogoda i czy dziś warto wystawić teleskop?
@@ -166,11 +166,11 @@ To są trzy najważniejsze pojęcia projektu.
 Przykłady:
 
 ```text
-krakow
-glebokie
+city-lab
+core-bunker
 ```
 
-Kraków i Głębokie nie muszą ze sobą gadać. Chodzi o to, żeby ta sama aplikacja mogła działać w różnych miejscach z różnym configiem.
+City Lab i Core Bunker nie muszą ze sobą gadać. Chodzi o to, żeby ta sama aplikacja mogła działać w różnych miejscach z różnym configiem.
 
 ### Node
 
@@ -179,11 +179,11 @@ Kraków i Głębokie nie muszą ze sobą gadać. Chodzi o to, żeby ta sama apli
 Przykłady:
 
 ```text
-krakow-lab-t620
-glebokie-core-t620
-glebokie-media-t620
-glebokie-astro-pc
-glebokie-garden-node
+city-lab-core
+core-bunker-core
+core-bunker-media
+core-bunker-astro
+core-bunker-garden
 ```
 
 Jeden site może mieć wiele node’ów. Na wsi możesz mieć core hub na jednym terminalu, a drugi terminal jako media worker, eksperymentalny node albo host od all-sky.
@@ -201,7 +201,7 @@ allsky:t7c
 indi:asi533mc-pro
 soil:bed-1
 lightning:as3935
-system:glebokie-core-t620
+system:core-bunker-core
 ```
 
 Najważniejsze: `device_key` powinien być stabilny. Jeśli zmienisz go po roku, historia danych będzie wyglądała jak dane z dwóch różnych urządzeń.
@@ -231,8 +231,8 @@ Hub nie powinien jednak traktować tego jako finalnego modelu danych. Najpierw z
 
 ```json
 {
-  "site": "krakow",
-  "node": "krakow-lab-t620",
+  "site": "city-lab",
+  "node": "city-lab-core",
   "source": "rtl433",
   "events": [
     {
@@ -284,8 +284,8 @@ Measurement to czysta, znormalizowana wartość gotowa do API, wykresów i dashb
 Przykład:
 
 ```text
-site: krakow
-node: krakow-lab-t620
+site: city-lab
+node: city-lab-core
 device_key: rtl433:inFactory-TH:1:166
 metric: temperature
 value: 20.06
@@ -419,7 +419,7 @@ Przykład odpowiedzi publicznej:
 
 ```json
 {
-  "site": "krakow",
+  "site": "city-lab",
   "temperature_C": 20.1,
   "humidity": 47,
   "battery_ok": true,
@@ -476,7 +476,7 @@ Dashboard ma być jedną stroną, nie labiryntem podstron.
 Na początku:
 
 ```text
-Kraków Lab
+City Lab
 - temperatura
 - wilgotność
 - ostatni odczyt
@@ -487,7 +487,7 @@ Kraków Lab
 Docelowo:
 
 ```text
-Głębokie Outpost
+Core Bunker
 - pogoda
 - wiatr/deszcz
 - all-sky latest
@@ -518,7 +518,7 @@ energy_status
 home_status
 ```
 
-Kraków pokazuje mniej kart, Głębokie więcej. Ten sam core, różny config.
+City Lab pokazuje mniej kart, Core Bunker więcej. Ten sam core, różny config.
 
 ---
 
@@ -547,8 +547,8 @@ Preferowane są logi strukturalne, np. JSON:
   "level": "INFO",
   "logger": "outpost.collector.rtl433",
   "message": "measurement_stored",
-  "site": "krakow",
-  "node": "krakow-lab-t620",
+  "site": "city-lab",
+  "node": "city-lab-core",
   "device_key": "rtl433:inFactory-TH:1:166",
   "metric": "temperature",
   "value": 20.06,
@@ -573,8 +573,8 @@ Minimalny health endpoint:
 ```json
 {
   "status": "ok",
-  "site": "krakow",
-  "node": "krakow-lab-t620",
+  "site": "city-lab",
+  "node": "city-lab-core",
   "checks": {
     "database": "ok",
     "rtl433_collector": "ok",
@@ -588,8 +588,8 @@ Docelowo każdy node/agent powinien wysyłać heartbeat:
 
 ```json
 {
-  "site": "glebokie",
-  "node": "glebokie-astro-pc",
+  "site": "core-bunker",
+  "node": "core-bunker-astro",
   "type": "heartbeat",
   "status": "ok",
   "services": {
@@ -606,7 +606,7 @@ Hub zapisuje `last_seen` i pokazuje, czy node jest online, stale, warning albo o
 Docelowo `outpost status` może pokazać ten sam stan, który widzi prywatny dashboard:
 
 ```text
-Sky Weather Outpost — Głębokie
+Sky Weather Outpost — Core Bunker
 
 WEATHER
 ✓ Bresser             online
@@ -653,9 +653,9 @@ last_backup_age_seconds
 Te dane też mogą wejść do `measurements`:
 
 ```text
-site: glebokie
-node: glebokie-core-t620
-device_key: system:glebokie-core-t620
+site: core-bunker
+node: core-bunker-core
+device_key: system:core-bunker-core
 metric: disk_free_gb
 value: 183.4
 unit: GB
@@ -1189,11 +1189,11 @@ Przykład:
 
 ```yaml
 site:
-  id: glebokie
-  name: Głębokie Outpost
+  id: core-bunker
+  name: Core Bunker
 
 node:
-  id: glebokie-core-t620
+  id: core-bunker-core
 
 modules:
   rtl433:
