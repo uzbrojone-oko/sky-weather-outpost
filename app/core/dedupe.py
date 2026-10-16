@@ -12,7 +12,7 @@ class Deduplicator:
 
     def is_duplicate(self, frame: object) -> bool:
         fingerprint = self._fingerprint(frame)
-        measured_at = frame.measured_at
+        measured_at = frame.measured_at or frame.received_at
         previous_time = self._seen.get(fingerprint)
 
         if (
