@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -35,6 +36,23 @@ def test_duplicate_jsonl_line_is_dropped():
     line = Path("tests/fixtures/rtl433-sample.jsonl").read_text(
         encoding="utf-8"
     ).splitlines()[1]
+
+    first = processor.process_line(line, RECEIVED_AT)
+    duplicate = processor.process_line(line, RECEIVED_AT)
+
+    assert first is not None
+    assert duplicate is None
+
+
+def test_duplicate_jsonl_line_without_source_time_is_dropped():
+    processor = make_processor()
+    data = json.loads(
+        Path("tests/fixtures/rtl433-sample.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()[1]
+    )
+    data.pop("time", None)
+    line = json.dumps(data)
 
     first = processor.process_line(line, RECEIVED_AT)
     duplicate = processor.process_line(line, RECEIVED_AT)
