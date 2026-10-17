@@ -110,4 +110,4 @@ outpost backup --config config/examples/city-lab.yaml
 - [Deployment](docs/DEPLOYMENT.md)
 - [Handbook](docs/HANDBOOK.md)
 - [Copilot instructions](copilot-instructions.md)
-- [Changelog](CHANGELOG.md)
+- [Changelog](docs/CHANGELOG.md)
