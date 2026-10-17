@@ -43,3 +43,42 @@ def test_initialize_database_does_not_apply_migration_twice(tmp_path: Path):
         ).fetchall()
 
     assert versions == [(1,)]
+
+
+def test_jsonl_replay_stores_raw_events_and_measurements(tmp_path: Path):
+    from datetime import UTC, datetime
+
+    from app.config.loader import load_config
+    from app.ingest.replay import replay_jsonl
+    from app.ingest.rtl433 import Rtl433FrameProcessor
+    from app.storage.repository import store_frame
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    processor = Rtl433FrameProcessor(config.devices, config.site.timezone)
+    received_at = datetime(2026, 9, 24, 20, 0, tzinfo=UTC)
+    fixture = Path("tests/fixtures/rtl433-sample.jsonl")
+    database_path = tmp_path / "outpost.sqlite"
+
+    initialize_database(database_path)
+    frames = list(replay_jsonl(fixture, processor, received_at))
+
+    for frame in frames:
+        device = next(item for item in config.devices if item.key == frame.device_key)
+        store_frame(
+            database_path,
+            frame,
+            site_id=config.site.id,
+            node=config.node,
+            device=device,
+        )
+
+    with sqlite3.connect(database_path) as connection:
+        raw_event_count = connection.execute(
+            "SELECT COUNT(*) FROM raw_events"
+        ).fetchone()[0]
+        measurement_count = connection.execute(
+            "SELECT COUNT(*) FROM measurements"
+        ).fetchone()[0]
+
+    assert raw_event_count == 3
+    assert measurement_count == 9
