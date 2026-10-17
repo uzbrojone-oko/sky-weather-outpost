@@ -59,3 +59,18 @@ def test_duplicate_jsonl_line_without_source_time_is_dropped():
 
     assert first is not None
     assert duplicate is None
+
+
+def test_jsonl_file_replay_emits_three_readings_and_nine_metrics():
+    from app.ingest.replay import replay_jsonl
+
+    frames = list(
+        replay_jsonl(
+            Path("tests/fixtures/rtl433-sample.jsonl"),
+            make_processor(),
+            RECEIVED_AT,
+        )
+    )
+
+    assert len(frames) == 3
+    assert sum(len(frame.measurements) for frame in frames) == 9
