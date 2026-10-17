@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sqlite3
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -9,6 +10,8 @@ from pathlib import Path
 from app.config.loader import ConfigError, load_config
 from app.ingest.replay import replay_jsonl
 from app.ingest.rtl433 import Rtl433FrameProcessor
+from app.storage.database import initialize_database
+from app.storage.repository import store_frame
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -66,7 +69,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                     datetime.now(UTC),
                 )
             )
-        except (ConfigError, OSError, ValueError) as exc:
+
+            database_path = Path(config.storage.sqlite_path)
+            initialize_database(database_path)
+            devices = {device.key: device for device in config.devices}
+            for frame in frames:
+                store_frame(
+                    database_path,
+                    frame,
+                    site_id=config.site.id,
+                    node=config.node,
+                    device=devices[frame.device_key],
+                )
+        except (ConfigError, OSError, ValueError, sqlite3.Error) as exc:
             print(str(exc), file=sys.stderr)
             return 2
 

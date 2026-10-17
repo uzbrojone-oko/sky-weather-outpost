@@ -11,3 +11,4 @@
 - Added an RTL-433 JSONL replay command to the CLI with reading and metric counts.
 - Added an initial versioned SQLite schema for nodes, devices, raw events, measurements and system events.
 - Added SQLite storage for raw RTL-433 frames and normalized measurements.
+- Connected CLI JSONL replay to SQLite persistence using the configured database path.
