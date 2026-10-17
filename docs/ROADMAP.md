@@ -42,6 +42,7 @@ Goal: first living outpost.
 - `outpost status` for a concise current-state view with readable status indicators.
 - `outpost health` / healthcheck CLI for application and API health.
 - `outpost doctor` for deeper active diagnostics with pass/warn/fail checks and actionable failure details.
+- Consider a future animated `--show-off` CLI mode combining playful ASCII visuals (for example, a cow beneath a night sky) with real Sky Weather Outpost data; design and behavior to be defined later.
 - Initial diagnostic checks for service/process state, database access and migrations, sensor freshness, disk space and configuration validity.
 - Operational checks for web/API reachability and reverse-proxy state when configured.
 - HTTPS/TLS status including certificate validity and remaining lifetime; certificate issuance and renewal remain the responsibility of Caddy/ACME or the configured reverse proxy rather than Outpost itself.
