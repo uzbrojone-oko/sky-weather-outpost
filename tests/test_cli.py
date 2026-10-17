@@ -22,3 +22,16 @@ def test_config_validate_reports_invalid_config(tmp_path: Path, capsys):
     assert exit_code == 2
     assert captured.out == ""
     assert "Configuration validation failed" in captured.err
+
+
+def test_rtl433_replay_prints_reading_and_metric_counts(capsys):
+    exit_code = main([
+        "rtl433", "replay",
+        "--config", "config/examples/city-lab.yaml",
+        "--input", "tests/fixtures/rtl433-sample.jsonl",
+    ])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out == "Replay complete\nreadings: 3\nmetrics: 9\n"
+    assert captured.err == ""
