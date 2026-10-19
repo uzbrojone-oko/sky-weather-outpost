@@ -13,3 +13,4 @@
 - Added SQLite storage for raw RTL-433 frames and normalized measurements.
 - Connected CLI JSONL replay to SQLite persistence using the configured database path.
 - Added live RTL-433 JSONL ingestion from stdin to SQLite through the CLI.
+- Added a public current readings API and CLI command to serve it.

@@ -84,3 +84,46 @@ def store_frame(
                 for measurement in frame.measurements
             ],
         )
+
+
+def get_latest_reading(
+    database_path: Path,
+    device_key: str,
+) -> dict[str, object] | None:
+    with sqlite3.connect(database_path) as connection:
+        event = connection.execute(
+            """
+            SELECT raw_event_id
+            FROM raw_events
+            WHERE device_key = ?
+            ORDER BY received_at DESC, raw_event_id DESC
+            LIMIT 1
+            """,
+            (device_key,),
+        ).fetchone()
+
+        if event is None:
+            return None
+
+        rows = connection.execute(
+            """
+            SELECT metric, value, unit, measured_at, received_at
+            FROM measurements
+            WHERE raw_event_id = ?
+            ORDER BY measurement_id
+            """,
+            (event[0],),
+        ).fetchall()
+
+    if not rows:
+        return None
+
+    return {
+        "device_key": device_key,
+        "measured_at": rows[0][3],
+        "received_at": rows[0][4],
+        "measurements": {
+            row[0]: {"value": row[1], "unit": row[2]}
+            for row in rows
+        },
+    }
