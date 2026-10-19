@@ -36,6 +36,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     replay_parser.add_argument("--config", required=True)
     replay_parser.add_argument("--input", required=True)
+    ingest_parser = rtl433_commands.add_parser(
+        "ingest", help="Ingest live RTL-433 JSONL from stdin"
+    )
+    ingest_parser.add_argument("--config", required=True)
 
     return parser
 
@@ -90,5 +94,49 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"readings: {len(frames)}")
         print(f"metrics: {metric_count}")
         return 0
+
+    if args.command == "rtl433" and args.rtl433_command == "ingest":
+        try:
+            config = load_config(args.config)
+            processor = Rtl433FrameProcessor(
+                devices=config.devices,
+                site_timezone=config.site.timezone,
+            )
+            database_path = Path(config.storage.sqlite_path)
+            initialize_database(database_path)
+            devices = {device.key: device for device in config.devices}
+            reading_count = 0
+            metric_count = 0
+            interrupted = False
+
+            try:
+                for line in sys.stdin:
+                    if not line.strip():
+                        continue
+
+                    frame = processor.process_line(line, datetime.now(UTC))
+                    if frame is None:
+                        continue
+
+                    store_frame(
+                        database_path,
+                        frame,
+                        site_id=config.site.id,
+                        node=config.node,
+                        device=devices[frame.device_key],
+                    )
+                    reading_count += 1
+                    metric_count += len(frame.measurements)
+            except KeyboardInterrupt:
+                interrupted = True
+        except (ConfigError, OSError, ValueError, sqlite3.Error) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+
+        message = "Ingest interrupted" if interrupted else "Ingest complete"
+        print(message)
+        print(f"readings: {reading_count}")
+        print(f"metrics: {metric_count}")
+        return 130 if interrupted else 0
 
     return 2
