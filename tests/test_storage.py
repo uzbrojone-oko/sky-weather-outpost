@@ -51,7 +51,7 @@ def test_jsonl_replay_stores_raw_events_and_measurements(tmp_path: Path):
     from app.config.loader import load_config
     from app.ingest.replay import replay_jsonl
     from app.ingest.rtl433 import Rtl433FrameProcessor
-    from app.storage.repository import store_frame
+    from app.storage.repository import get_latest_reading, store_frame
 
     config = load_config(Path("config/examples/city-lab.yaml"))
     processor = Rtl433FrameProcessor(config.devices, config.site.timezone)
@@ -82,3 +82,22 @@ def test_jsonl_replay_stores_raw_events_and_measurements(tmp_path: Path):
 
     assert raw_event_count == 3
     assert measurement_count == 9
+
+    latest = get_latest_reading(database_path, frames[-1].device_key)
+    measured_at = (
+        frames[-1].measured_at.isoformat()
+        if frames[-1].measured_at is not None
+        else None
+    )
+    assert latest == {
+        "device_key": frames[-1].device_key,
+        "measured_at": measured_at,
+        "received_at": frames[-1].received_at.isoformat(),
+        "measurements": {
+            measurement.metric: {
+                "value": measurement.value,
+                "unit": measurement.unit,
+            }
+            for measurement in frames[-1].measurements
+        },
+    }

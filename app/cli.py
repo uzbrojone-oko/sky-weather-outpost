@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.api.server import create_api_server
 from app.config.loader import ConfigError, load_config
 from app.ingest.replay import replay_jsonl
 from app.ingest.rtl433 import Rtl433FrameProcessor
@@ -40,6 +41,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "ingest", help="Ingest live RTL-433 JSONL from stdin"
     )
     ingest_parser.add_argument("--config", required=True)
+
+    api_parser = commands.add_parser("api", help="API commands")
+    api_commands = api_parser.add_subparsers(
+        dest="api_command", required=True
+    )
+    serve_parser = api_commands.add_parser("serve", help="Serve the API")
+    serve_parser.add_argument("--config", required=True)
+    serve_parser.add_argument("--host")
 
     return parser
 
@@ -138,5 +147,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"readings: {reading_count}")
         print(f"metrics: {metric_count}")
         return 130 if interrupted else 0
+
+    if args.command == "api" and args.api_command == "serve":
+        try:
+            config = load_config(args.config)
+            server = create_api_server(config, host=args.host)
+        except (ConfigError, OSError, ValueError, sqlite3.Error) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+
+        host, port = server.server_address[:2]
+        print(f"API listening at http://{host}:{port}")
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            return 130
+        finally:
+            server.server_close()
+        return 0
 
     return 2
