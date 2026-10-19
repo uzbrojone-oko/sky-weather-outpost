@@ -82,3 +82,59 @@ def test_rtl433_replay_persists_to_configured_database(
     assert captured.err == ""
     assert raw_event_count == 3
     assert measurement_count == 9
+
+
+def test_rtl433_ingest_persists_jsonl_from_stdin(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+):
+    import io
+    import sqlite3
+
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "outpost.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+    monkeypatch.setattr("app.cli.load_config", lambda _path: config)
+
+    fixture_line = (
+        Path("tests/fixtures/rtl433-sample.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()[1]
+    )
+    monkeypatch.setattr(
+        "app.cli.sys.stdin",
+        io.StringIO(f"{fixture_line}\n{fixture_line}\n"),
+    )
+
+    exit_code = main(
+        [
+            "rtl433",
+            "ingest",
+            "--config",
+            "config/examples/city-lab.yaml",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    with sqlite3.connect(database_path) as connection:
+        raw_event_count = connection.execute(
+            "SELECT COUNT(*) FROM raw_events"
+        ).fetchone()[0]
+        measurement_count = connection.execute(
+            "SELECT COUNT(*) FROM measurements"
+        ).fetchone()[0]
+
+    assert exit_code == 0
+    assert captured.out == "Ingest complete\nreadings: 1\nmetrics: 3\n"
+    assert captured.err == ""
+    assert raw_event_count == 1
+    assert measurement_count == 3
