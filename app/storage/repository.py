@@ -94,9 +94,9 @@ def get_latest_reading(
         event = connection.execute(
             """
             SELECT raw_event_id
-            FROM raw_events
+            FROM measurements
             WHERE device_key = ?
-            ORDER BY received_at DESC, raw_event_id DESC
+            ORDER BY COALESCE(measured_at, received_at) DESC, measurement_id DESC
             LIMIT 1
             """,
             (device_key,),

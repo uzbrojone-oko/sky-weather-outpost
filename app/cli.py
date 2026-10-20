@@ -6,13 +6,14 @@ import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from app.api.server import create_api_server
 from app.config.loader import ConfigError, load_config
 from app.ingest.replay import replay_jsonl
 from app.ingest.rtl433 import Rtl433FrameProcessor
 from app.storage.database import initialize_database
-from app.storage.repository import store_frame
+from app.storage.repository import get_latest_reading, store_frame
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -49,6 +50,15 @@ def _build_parser() -> argparse.ArgumentParser:
     serve_parser = api_commands.add_parser("serve", help="Serve the API")
     serve_parser.add_argument("--config", required=True)
     serve_parser.add_argument("--host")
+
+    weather_parser = commands.add_parser("weather", help="Weather commands")
+    weather_commands = weather_parser.add_subparsers(
+        dest="weather_command", required=True
+    )
+    current_parser = weather_commands.add_parser(
+        "current", help="Show the latest weather reading"
+    )
+    current_parser.add_argument("--config", required=True)
 
     return parser
 
@@ -147,6 +157,62 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"readings: {reading_count}")
         print(f"metrics: {metric_count}")
         return 130 if interrupted else 0
+
+    if args.command == "weather" and args.weather_command == "current":
+        try:
+            config = load_config(args.config)
+            database_path = Path(config.storage.sqlite_path)
+            initialize_database(database_path)
+            found_reading = False
+
+            for device in config.devices:
+                if device.type != "weather_sensor":
+                    continue
+
+                reading = get_latest_reading(database_path, device.key)
+                if reading is None:
+                    continue
+
+                found_reading = True
+                measurements = reading["measurements"]
+                timestamp = reading.get("measured_at") or reading["received_at"]
+                local_time = datetime.fromisoformat(str(timestamp)).astimezone(
+                    ZoneInfo(config.site.timezone)
+                )
+
+                print(config.site.name)
+                print(f"Pomiar: {local_time:%d.%m.%Y, %H:%M}")
+                print()
+
+                temperature = measurements.get("temperature")
+                if temperature is not None:
+                    value = float(temperature["value"])
+                    formatted = f"{value:.1f}".replace(".", ",")
+                    print(f"Temperatura: {formatted} °C")
+
+                humidity = measurements.get("humidity")
+                if humidity is not None:
+                    value = float(humidity["value"])
+                    formatted = (
+                        str(int(value))
+                        if value.is_integer()
+                        else f"{value:.1f}".replace(".", ",")
+                    )
+                    print(f"Wilgotność: {formatted}%")
+
+                battery = measurements.get("battery_ok")
+                if battery is not None:
+                    status = "OK" if float(battery["value"]) >= 1 else "niska"
+                    print(f"Bateria: {status}")
+
+            if not found_reading:
+                print("Brak zapisanych pomiarów.")
+
+        except (ConfigError, OSError, ValueError, sqlite3.Error, KeyError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+
+        return 0
 
     if args.command == "api" and args.api_command == "serve":
         try:
