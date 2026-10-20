@@ -290,3 +290,65 @@ def test_weather_current_reports_when_no_reading_exists(
     assert exit_code == 0
     assert captured.out == "Brak zapisanych pomiarów.\n"
     assert captured.err == ""
+
+
+def test_weather_current_fetches_and_formats_api_response(
+    monkeypatch,
+    capsys,
+):
+    import json
+    from io import BytesIO
+
+    from app import cli
+
+    payload = {
+        "site": {
+            "id": "city-lab",
+            "name": "City Lab",
+            "timezone": "Europe/Warsaw",
+        },
+        "devices": [
+            {
+                "key": "rtl433:inFactory-TH:1:166",
+                "name": "City Lab weather sensor",
+                "type": "weather_sensor",
+                "measured_at": "2026-10-19T14:48:31+00:00",
+                "received_at": "2026-10-19T14:48:32+00:00",
+                "measurements": {
+                    "temperature": {"value": 10.444, "unit": "C"},
+                    "humidity": {"value": 79.0, "unit": "%"},
+                    "battery_ok": {"value": 1.0, "unit": "bool"},
+                },
+            }
+        ],
+    }
+    requested = {}
+
+    def fake_urlopen(url, *, timeout):
+        requested["url"] = url
+        requested["timeout"] = timeout
+        return BytesIO(json.dumps(payload).encode("utf-8"))
+
+    monkeypatch.setattr(cli, "urlopen", fake_urlopen, raising=False)
+
+    exit_code = cli.main(
+        [
+            "weather",
+            "current",
+            "--url",
+            "http://192.168.1.249:8000/api/v1/public/current",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert requested == {
+        "url": "http://192.168.1.249:8000/api/v1/public/current",
+        "timeout": 2,
+    }
+    assert "City Lab" in captured.out
+    assert "Pomiar: 19.10.2026, 16:48" in captured.out
+    assert "Temperatura: 10,4 °C" in captured.out
+    assert "Wilgotność: 79%" in captured.out
+    assert "Bateria: OK" in captured.out
+    assert captured.err == ""

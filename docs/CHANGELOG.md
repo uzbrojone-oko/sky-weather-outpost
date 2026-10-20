@@ -15,3 +15,4 @@
 - Added live RTL-433 JSONL ingestion from stdin to SQLite through the CLI.
 - Added a public current readings API and CLI command to serve it.
 - Added a human-readable CLI command for the latest weather reading, selected by measurement time with a received-time fallback.
+- Added a remote CLI mode that fetches and formats current weather from the public API.

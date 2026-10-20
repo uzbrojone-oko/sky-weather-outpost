@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.request import urlopen
 from zoneinfo import ZoneInfo
 
 from app.api.server import create_api_server
@@ -58,9 +60,60 @@ def _build_parser() -> argparse.ArgumentParser:
     current_parser = weather_commands.add_parser(
         "current", help="Show the latest weather reading"
     )
-    current_parser.add_argument("--config", required=True)
+    current_source = current_parser.add_mutually_exclusive_group(required=True)
+    current_source.add_argument("--config")
+    current_source.add_argument("--url")
 
     return parser
+
+
+
+def _format_number(value: object, *, compact: bool = False) -> str:
+    number = float(value)
+    if compact and number.is_integer():
+        return str(int(number))
+    return f"{number:.1f}".replace(".", ",")
+
+
+def _format_current_weather(
+    site_name: str,
+    timezone: str,
+    readings: list[dict],
+) -> str:
+    if not readings:
+        return "Brak zapisanych pomiarów.\n"
+
+    lines = []
+    for reading in readings:
+        measurements = reading["measurements"]
+        timestamp = reading.get("measured_at") or reading["received_at"]
+        local_time = datetime.fromisoformat(str(timestamp)).astimezone(
+            ZoneInfo(timezone)
+        )
+
+        lines.extend((site_name, f"Pomiar: {local_time:%d.%m.%Y, %H:%M}", ""))
+
+        temperature = measurements.get("temperature")
+        if temperature is not None:
+            unit = "°C" if temperature.get("unit") == "C" else temperature["unit"]
+            lines.append(
+                f"Temperatura: {_format_number(temperature['value'])} {unit}"
+            )
+
+        humidity = measurements.get("humidity")
+        if humidity is not None:
+            lines.append(
+                f"Wilgotność: {_format_number(humidity['value'], compact=True)}%"
+            )
+
+        battery = measurements.get("battery_ok")
+        if battery is not None:
+            status = "OK" if float(battery["value"]) >= 1 else "niska"
+            lines.append(f"Bateria: {status}")
+
+        lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -160,55 +213,40 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "weather" and args.weather_command == "current":
         try:
-            config = load_config(args.config)
-            database_path = Path(config.storage.sqlite_path)
-            initialize_database(database_path)
-            found_reading = False
+            if args.url is not None:
+                with urlopen(args.url, timeout=2) as response:
+                    payload = json.load(response)
+                site_name = payload["site"]["name"]
+                timezone = payload["site"]["timezone"]
+                readings = [
+                    device
+                    for device in payload["devices"]
+                    if device["type"] == "weather_sensor"
+                ]
+            else:
+                config = load_config(args.config)
+                database_path = Path(config.storage.sqlite_path)
+                initialize_database(database_path)
+                site_name = config.site.name
+                timezone = config.site.timezone
+                readings = []
 
-            for device in config.devices:
-                if device.type != "weather_sensor":
-                    continue
+                for device in config.devices:
+                    if device.type != "weather_sensor":
+                        continue
+                    reading = get_latest_reading(database_path, device.key)
+                    if reading is not None:
+                        readings.append(reading)
 
-                reading = get_latest_reading(database_path, device.key)
-                if reading is None:
-                    continue
-
-                found_reading = True
-                measurements = reading["measurements"]
-                timestamp = reading.get("measured_at") or reading["received_at"]
-                local_time = datetime.fromisoformat(str(timestamp)).astimezone(
-                    ZoneInfo(config.site.timezone)
-                )
-
-                print(config.site.name)
-                print(f"Pomiar: {local_time:%d.%m.%Y, %H:%M}")
-                print()
-
-                temperature = measurements.get("temperature")
-                if temperature is not None:
-                    value = float(temperature["value"])
-                    formatted = f"{value:.1f}".replace(".", ",")
-                    print(f"Temperatura: {formatted} °C")
-
-                humidity = measurements.get("humidity")
-                if humidity is not None:
-                    value = float(humidity["value"])
-                    formatted = (
-                        str(int(value))
-                        if value.is_integer()
-                        else f"{value:.1f}".replace(".", ",")
-                    )
-                    print(f"Wilgotność: {formatted}%")
-
-                battery = measurements.get("battery_ok")
-                if battery is not None:
-                    status = "OK" if float(battery["value"]) >= 1 else "niska"
-                    print(f"Bateria: {status}")
-
-            if not found_reading:
-                print("Brak zapisanych pomiarów.")
-
-        except (ConfigError, OSError, ValueError, sqlite3.Error, KeyError) as exc:
+            print(_format_current_weather(site_name, timezone, readings), end="")
+        except (
+            ConfigError,
+            OSError,
+            ValueError,
+            sqlite3.Error,
+            KeyError,
+            TypeError,
+        ) as exc:
             print(str(exc), file=sys.stderr)
             return 2
 
