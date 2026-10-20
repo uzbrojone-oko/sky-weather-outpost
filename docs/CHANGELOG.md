@@ -14,3 +14,4 @@
 - Connected CLI JSONL replay to SQLite persistence using the configured database path.
 - Added live RTL-433 JSONL ingestion from stdin to SQLite through the CLI.
 - Added a public current readings API and CLI command to serve it.
+- Added a human-readable CLI command for the latest weather reading, selected by measurement time with a received-time fallback.

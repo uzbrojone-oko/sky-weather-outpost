@@ -217,3 +217,76 @@ def test_api_serve_passes_host_override_to_server(monkeypatch, capsys):
     assert server_options["host"] == "192.168.1.249"
     assert captured.out == "API listening at http://192.168.1.249:8000\n"
     assert captured.err == ""
+
+
+def test_weather_current_prints_latest_reading(monkeypatch, capsys):
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    reading = {
+        "device_key": "rtl433:inFactory-TH:1:166",
+        "measured_at": "2026-10-19T14:48:31+00:00",
+        "received_at": "2026-10-19T14:48:32+00:00",
+        "measurements": {
+            "temperature": {"value": 10.444, "unit": "C"},
+            "humidity": {"value": 79.0, "unit": "%"},
+            "battery_ok": {"value": 1.0, "unit": "bool"},
+        },
+    }
+
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+    monkeypatch.setattr(
+        cli,
+        "get_latest_reading",
+        lambda _database_path, _device_key: reading,
+        raising=False,
+    )
+
+    exit_code = cli.main(
+        ["weather", "current", "--config", "config/examples/city-lab.yaml"]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert config.site.name in captured.out
+    assert "Pomiar: 19.10.2026, 16:48" in captured.out
+    assert "Temperatura: 10,4 °C" in captured.out
+    assert "Wilgotność: 79%" in captured.out
+    assert "Bateria: OK" in captured.out
+    assert captured.err == ""
+
+
+def test_weather_current_reports_when_no_reading_exists(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+):
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "outpost.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+    monkeypatch.setattr(
+        cli,
+        "get_latest_reading",
+        lambda _database_path, _device_key: None,
+    )
+
+    exit_code = cli.main(
+        ["weather", "current", "--config", "config/examples/city-lab.yaml"]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out == "Brak zapisanych pomiarów.\n"
+    assert captured.err == ""

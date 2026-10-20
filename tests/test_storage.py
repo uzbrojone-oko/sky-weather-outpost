@@ -101,3 +101,71 @@ def test_jsonl_replay_stores_raw_events_and_measurements(tmp_path: Path):
             for measurement in frames[-1].measurements
         },
     }
+
+
+def test_get_latest_reading_uses_measurement_time_not_replay_receive_time(
+    tmp_path: Path,
+):
+    from app.storage.repository import get_latest_reading
+
+    database_path = tmp_path / "outpost.sqlite"
+    device_key = "rtl433:inFactory-TH:1:166"
+    initialize_database(database_path)
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            "INSERT INTO nodes (node_id, site_id, role) VALUES (?, ?, ?)",
+            ("city-lab-core", "city-lab", "core"),
+        )
+        connection.execute(
+            """
+            INSERT INTO devices (device_key, node_id, name, type, public)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (device_key, "city-lab-core", "Weather sensor", "weather_sensor", 1),
+        )
+
+        events = [
+            (
+                "2026-10-19T14:48:32+00:00",
+                "2026-10-19T14:48:31+00:00",
+                10.444,
+            ),
+            (
+                "2026-10-20T12:32:03+00:00",
+                "2026-09-24T19:09:38+00:00",
+                11.667,
+            ),
+        ]
+
+        for received_at, measured_at, value in events:
+            cursor = connection.execute(
+                """
+                INSERT INTO raw_events (source, device_key, received_at, raw_json)
+                VALUES (?, ?, ?, ?)
+                """,
+                ("rtl433", device_key, received_at, "{}"),
+            )
+            connection.execute(
+                """
+                INSERT INTO measurements (
+                    device_key, metric, value, unit, measured_at, received_at, raw_event_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    device_key,
+                    "temperature",
+                    value,
+                    "C",
+                    measured_at,
+                    received_at,
+                    cursor.lastrowid,
+                ),
+            )
+
+    reading = get_latest_reading(database_path, device_key)
+
+    assert reading is not None
+    assert reading["measured_at"] == "2026-10-19T14:48:31+00:00"
+    assert reading["measurements"]["temperature"]["value"] == 10.444
