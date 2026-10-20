@@ -62,6 +62,7 @@ def test_public_current_returns_latest_configured_reading(tmp_path: Path):
     assert payload["site"] == {
         "id": config.site.id,
         "name": config.site.name,
+        "timezone": config.site.timezone,
     }
     assert len(payload["devices"]) == 1
 

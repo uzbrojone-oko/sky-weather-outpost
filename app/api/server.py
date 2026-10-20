@@ -57,6 +57,7 @@ def create_api_server(
                 "site": {
                     "id": config.site.id,
                     "name": config.site.name,
+                    "timezone": config.site.timezone,
                 },
                 "devices": devices,
             })
