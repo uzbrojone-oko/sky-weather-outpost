@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import yaml
@@ -33,3 +34,14 @@ def load_config(path: str | Path) -> OutpostConfig:
             location = ".".join(str(part) for part in error["loc"])
             errors.append(f"{location}: {error['msg']}")
         raise ConfigError("Configuration validation failed: " + "; ".join(errors)) from exc
+
+
+def resolve_config_path(path: str | Path | None = None) -> Path:
+    if path is not None:
+        return Path(path).expanduser()
+
+    environment_path = os.environ.get("OUTPOST_CONFIG")
+    if environment_path:
+        return Path(environment_path).expanduser()
+
+    return Path.home() / ".config" / "sky-weather-outpost" / "config.yaml"
