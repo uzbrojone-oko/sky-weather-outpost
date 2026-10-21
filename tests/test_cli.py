@@ -352,3 +352,33 @@ def test_weather_current_fetches_and_formats_api_response(
     assert "Wilgotność: 79%" in captured.out
     assert "Bateria: OK" in captured.out
     assert captured.err == ""
+
+
+def test_weather_current_uses_environment_config_without_flag(
+    monkeypatch,
+    capsys,
+    tmp_path: Path,
+):
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    environment_path = tmp_path / "city-lab.yaml"
+    loaded_paths = []
+
+    monkeypatch.setenv("OUTPOST_CONFIG", str(environment_path))
+    monkeypatch.setattr(
+        cli,
+        "load_config",
+        lambda path: loaded_paths.append(path) or config,
+    )
+    monkeypatch.setattr(cli, "initialize_database", lambda _path: None)
+    monkeypatch.setattr(cli, "get_latest_reading", lambda *_args: None)
+
+    exit_code = cli.main(["weather", "current"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert loaded_paths == [environment_path]
+    assert captured.out == "Brak zapisanych pomiarów.\n"
+    assert captured.err == ""

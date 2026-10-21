@@ -11,7 +11,7 @@ from urllib.request import urlopen
 from zoneinfo import ZoneInfo
 
 from app.api.server import create_api_server
-from app.config.loader import ConfigError, load_config
+from app.config.loader import ConfigError, load_config, resolve_config_path
 from app.ingest.replay import replay_jsonl
 from app.ingest.rtl433 import Rtl433FrameProcessor
 from app.storage.database import initialize_database
@@ -38,19 +38,19 @@ def _build_parser() -> argparse.ArgumentParser:
     replay_parser = rtl433_commands.add_parser(
         "replay", help="Replay frames from a JSONL file"
     )
-    replay_parser.add_argument("--config", required=True)
+    replay_parser.add_argument("--config")
     replay_parser.add_argument("--input", required=True)
     ingest_parser = rtl433_commands.add_parser(
         "ingest", help="Ingest live RTL-433 JSONL from stdin"
     )
-    ingest_parser.add_argument("--config", required=True)
+    ingest_parser.add_argument("--config")
 
     api_parser = commands.add_parser("api", help="API commands")
     api_commands = api_parser.add_subparsers(
         dest="api_command", required=True
     )
     serve_parser = api_commands.add_parser("serve", help="Serve the API")
-    serve_parser.add_argument("--config", required=True)
+    serve_parser.add_argument("--config")
     serve_parser.add_argument("--host")
 
     weather_parser = commands.add_parser("weather", help="Weather commands")
@@ -60,7 +60,7 @@ def _build_parser() -> argparse.ArgumentParser:
     current_parser = weather_commands.add_parser(
         "current", help="Show the latest weather reading"
     )
-    current_source = current_parser.add_mutually_exclusive_group(required=True)
+    current_source = current_parser.add_mutually_exclusive_group()
     current_source.add_argument("--config")
     current_source.add_argument("--url")
 
@@ -133,7 +133,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "rtl433" and args.rtl433_command == "replay":
         try:
-            config = load_config(args.config)
+            config = load_config(resolve_config_path(args.config))
             processor = Rtl433FrameProcessor(
                 devices=config.devices,
                 site_timezone=config.site.timezone,
@@ -169,7 +169,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "rtl433" and args.rtl433_command == "ingest":
         try:
-            config = load_config(args.config)
+            config = load_config(resolve_config_path(args.config))
             processor = Rtl433FrameProcessor(
                 devices=config.devices,
                 site_timezone=config.site.timezone,
@@ -224,7 +224,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     if device["type"] == "weather_sensor"
                 ]
             else:
-                config = load_config(args.config)
+                config = load_config(resolve_config_path(args.config))
                 database_path = Path(config.storage.sqlite_path)
                 initialize_database(database_path)
                 site_name = config.site.name
@@ -254,7 +254,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "api" and args.api_command == "serve":
         try:
-            config = load_config(args.config)
+            config = load_config(resolve_config_path(args.config))
             server = create_api_server(config, host=args.host)
         except (ConfigError, OSError, ValueError, sqlite3.Error) as exc:
             print(str(exc), file=sys.stderr)
