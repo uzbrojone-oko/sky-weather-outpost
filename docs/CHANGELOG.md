@@ -17,3 +17,4 @@
 - Added a human-readable CLI command for the latest weather reading, selected by measurement time with a received-time fallback.
 - Added a remote CLI mode that fetches and formats current weather from the public API.
 - Added shared CLI configuration discovery via `--config`, `OUTPOST_CONFIG` and the default user config path.
+- Added systemd units for continuous RTL-433 ingestion and API serving, with live ingest progress in logs.

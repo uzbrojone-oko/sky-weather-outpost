@@ -1,0 +1,17 @@
+[Unit]
+Description=Sky Weather Outpost API
+After=network.target
+
+[Service]
+Type=simple
+User=dev
+WorkingDirectory=/home/dev/sky-weather-outpost
+Environment=OUTPOST_CONFIG=/home/dev/.config/sky-weather-outpost/live.yaml
+ExecStart=/home/dev/sky-weather-outpost/.venv/bin/outpost api serve --host 0.0.0.0
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
