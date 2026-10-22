@@ -112,7 +112,7 @@ def test_rtl433_ingest_persists_jsonl_from_stdin(
     )
     monkeypatch.setattr(
         "app.cli.sys.stdin",
-        io.StringIO(f"{fixture_line}\n{fixture_line}\n"),
+        io.StringIO("{}\n" + f"{fixture_line}\n{fixture_line}\n"),
     )
 
     exit_code = main(
@@ -135,6 +135,7 @@ def test_rtl433_ingest_persists_jsonl_from_stdin(
 
     assert exit_code == 0
     assert captured.out == "Ingest complete\nreadings: 1\nmetrics: 3\n"
+    assert "discarded invalid RTL-433 frame" in captured.err
     assert "stored reading: device=rtl433:inFactory-TH:1:166 metrics=3" in captured.err
     assert raw_event_count == 1
     assert measurement_count == 3
