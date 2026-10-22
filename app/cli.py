@@ -186,7 +186,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                     if not line.strip():
                         continue
 
-                    frame = processor.process_line(line, datetime.now(UTC))
+                    try:
+                        frame = processor.process_line(line, datetime.now(UTC))
+                    except ValueError as exc:
+                        print(
+                            f"discarded invalid RTL-433 frame: {exc}",
+                            file=sys.stderr,
+                            flush=True,
+                        )
+                        continue
+
                     if frame is None:
                         continue
 
