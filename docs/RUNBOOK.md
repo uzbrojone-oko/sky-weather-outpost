@@ -2,25 +2,44 @@
 
 Operational notes for running and debugging Sky Weather Outpost.
 
-## Check service status
+## Run as systemd services
 
-Native/systemd target:
+Install and start both services:
 
 ```bash
-sudo systemctl status sky-weather-outpost
-journalctl -u sky-weather-outpost -f
+sudo install -m 644 deploy/systemd/sky-weather-outpost-ingest.service /etc/systemd/system/
+sudo install -m 644 deploy/systemd/sky-weather-outpost-api.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now sky-weather-outpost-ingest.service sky-weather-outpost-api.service
 ```
 
-CLI target:
+Check status:
 
 ```bash
-outpost health --config /etc/sky-weather-outpost/config.yaml
+sudo systemctl status sky-weather-outpost-ingest.service
+sudo systemctl status sky-weather-outpost-api.service
+```
+
+Read recent logs or follow them live:
+
+```bash
+sudo journalctl -u sky-weather-outpost-ingest.service -n 50 --no-pager
+sudo journalctl -u sky-weather-outpost-api.service -n 50 --no-pager
+sudo journalctl -u sky-weather-outpost-ingest.service -f
+sudo journalctl -u sky-weather-outpost-api.service -f
+```
+
+After updating code or service files, restart the app:
+
+```bash
+sudo systemctl restart sky-weather-outpost-ingest.service sky-weather-outpost-api.service
 ```
 
 ## Check API
 
+The current public readings endpoint is available locally and to clients on the LAN:
+
 ```bash
-curl http://127.0.0.1:8000/api/v1/internal/health
 curl http://127.0.0.1:8000/api/v1/public/current
 ```
 

@@ -1,0 +1,18 @@
+[Unit]
+Description=Sky Weather Outpost RTL-433 ingestion
+After=local-fs.target
+
+[Service]
+Type=simple
+User=dev
+SupplementaryGroups=plugdev
+WorkingDirectory=/home/dev/sky-weather-outpost
+Environment=OUTPOST_CONFIG=/home/dev/.config/sky-weather-outpost/live.yaml
+ExecStart=/bin/bash -o pipefail -c "/usr/local/bin/rtl_433 -F json | /home/dev/sky-weather-outpost/.venv/bin/outpost rtl433 ingest"
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

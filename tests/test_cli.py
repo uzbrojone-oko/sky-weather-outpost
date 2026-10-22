@@ -135,7 +135,7 @@ def test_rtl433_ingest_persists_jsonl_from_stdin(
 
     assert exit_code == 0
     assert captured.out == "Ingest complete\nreadings: 1\nmetrics: 3\n"
-    assert captured.err == ""
+    assert "stored reading: device=rtl433:inFactory-TH:1:166 metrics=3" in captured.err
     assert raw_event_count == 1
     assert measurement_count == 3
 

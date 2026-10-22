@@ -197,6 +197,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                         node=config.node,
                         device=devices[frame.device_key],
                     )
+                    print(
+                        f"stored reading: device={frame.device_key} "
+                        f"metrics={len(frame.measurements)} "
+                        f"received_at={frame.received_at.isoformat()}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
                     reading_count += 1
                     metric_count += len(frame.measurements)
             except KeyboardInterrupt:
