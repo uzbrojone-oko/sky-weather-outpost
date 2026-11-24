@@ -77,9 +77,13 @@ rtl_433 -F json -C si | jq -c 'select(.model=="Bresser-3CH" and .id==241 and .ch
 
 ## Replay data
 
+Use the replay subcommand and pass the input file explicitly:
+
 ```bash
-outpost replay data/raw_data/rtl433-live.jsonl --config config/examples/city-lab.yaml
+outpost rtl433 replay --config config/examples/city-lab.yaml --input tests/fixtures/rtl433-bresser-sample.jsonl
 ```
+
+Replay writes to the SQLite database selected by the supplied config. Use a test config with a separate database path when you do not want to add replayed readings to the live database.
 
 ## Backup
 
