@@ -20,11 +20,6 @@ def fixture_lines() -> list[str]:
     return FIXTURE.read_text(encoding="utf-8").splitlines()
 
 
-def measurements_by_metric(line: str) -> dict[str, MeasurementDraft]:
-    result = normalize(parse_line(line), TIMEZONE, RECEIVED_AT)
-    return {m.metric: m for m in result.measurements}
-
-
 def test_known_sensor_frame_is_normalized():
     result = normalize(parse_line(fixture_lines()[0]), TIMEZONE, RECEIVED_AT)
 
