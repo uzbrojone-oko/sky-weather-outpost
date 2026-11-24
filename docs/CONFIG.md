@@ -43,14 +43,14 @@ api:
   internal_enabled: true
 
 devices:
-  - key: rtl433:inFactory-TH:1:166
+  - key: rtl433:Bresser-3CH:1:241
     name: "City Lab weather sensor"
     type: weather_sensor
     public: true
     match:
       source: rtl433
-      model: inFactory-TH
-      id: 166
+      model: Bresser-3CH
+      id: 241
       channel: 1
     metrics:
       - temperature
