@@ -28,24 +28,31 @@ def measurements_by_metric(line: str) -> dict[str, MeasurementDraft]:
 def test_known_sensor_frame_is_normalized():
     result = normalize(parse_line(fixture_lines()[1]), TIMEZONE, RECEIVED_AT)
 
-    assert result.device_key == "rtl433:inFactory-TH:1:166"
-    assert result.measured_at == datetime(2026, 9, 24, 19, 1, 35, tzinfo=UTC)
+    assert result.device_key == "rtl433:Bresser-3CH:1:241"
+    assert result.measured_at == datetime(2026, 10, 26, 11, 22, 9, tzinfo=UTC)
     assert result.received_at == RECEIVED_AT
     assert result.measurements == (
-        MeasurementDraft("temperature", 11.611, "C"),
-        MeasurementDraft("humidity", 82.0, "%"),
+        MeasurementDraft("temperature", 12.5, "C"),
+        MeasurementDraft("humidity", 69.0, "%"),
         MeasurementDraft("battery_ok", 1.0, "bool"),
     )
 
 
 def test_device_key_without_channel_has_empty_segment():
-    frame = parse_line(fixture_lines()[0])
+    frame = {"model": "Toyota", "id": "00000001"}
 
     assert build_device_key(frame) == "rtl433:Toyota::00000001"
 
 
 def test_unknown_metrics_are_left_in_raw_not_normalized():
-    result = normalize(parse_line(fixture_lines()[0]), TIMEZONE, RECEIVED_AT)
+    frame = {
+        "model": "Toyota",
+        "id": "00000001",
+        "pressure_kPa": 208.566,
+        "temperature_C": 13.0,
+    }
+
+    result = normalize(frame, TIMEZONE, RECEIVED_AT)
 
     assert [m.metric for m in result.measurements] == ["temperature"]
     assert result.raw["pressure_kPa"] == 208.566
@@ -72,13 +79,37 @@ def test_fahrenheit_is_converted_to_celsius():
 
 def test_implausible_reading_passes_through_unjudged():
     # Quality judgement belongs to a later layer, not to the normalizer.
-    metrics = measurements_by_metric(fixture_lines()[10])
+    result = normalize(
+        {
+            "model": "Ambientweather-F007TH",
+            "id": 7,
+            "channel": 1,
+            "temperature_C": -35.556,
+            "humidity": 68,
+            "battery_ok": 0,
+        },
+        TIMEZONE,
+        RECEIVED_AT,
+    )
+    metrics = {m.metric: m for m in result.measurements}
 
     assert metrics["temperature"].value == -35.556
 
 
 def test_low_battery_is_a_measurement():
-    metrics = measurements_by_metric(fixture_lines()[10])
+    result = normalize(
+        {
+            "model": "Ambientweather-F007TH",
+            "id": 7,
+            "channel": 1,
+            "temperature_C": -35.556,
+            "humidity": 68,
+            "battery_ok": 0,
+        },
+        TIMEZONE,
+        RECEIVED_AT,
+    )
+    metrics = {m.metric: m for m in result.measurements}
 
     assert metrics["battery_ok"] == MeasurementDraft("battery_ok", 0.0, "bool")
 
@@ -128,5 +159,5 @@ def test_every_fixture_line_normalizes():
 
     results = [normalize(parse_line(line), TIMEZONE, RECEIVED_AT) for line in lines]
 
-    assert len(results) == 14
+    assert len(results) == 5
     assert all(r.measured_at is not None for r in results)
