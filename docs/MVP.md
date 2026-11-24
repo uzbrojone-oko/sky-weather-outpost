@@ -18,7 +18,7 @@ Build the smallest useful Sky Weather Outpost instance: City Lab temperature and
   - `raw_events`
   - `measurements`
   - `system_events`
-- `inFactory-TH` id `166`, channel `1` mapping.
+- `Bresser-3CH` id `241`, channel `1` mapping.
 - Temperature normalized to `C`.
 - Humidity normalized to `%`.
 - Public current endpoint.

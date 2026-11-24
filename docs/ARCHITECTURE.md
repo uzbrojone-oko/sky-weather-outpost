@@ -77,14 +77,14 @@ Example normalized payload:
   "events": [
     {
       "type": "measurement",
-      "device_key": "rtl433:inFactory-TH:1:166",
+      "device_key": "rtl433:Bresser-3CH:1:241",
       "metric": "temperature",
       "value": 20.06,
       "unit": "C"
     },
     {
       "type": "measurement",
-      "device_key": "rtl433:inFactory-TH:1:166",
+      "device_key": "rtl433:Bresser-3CH:1:241",
       "metric": "humidity",
       "value": 47,
       "unit": "%"

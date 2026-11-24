@@ -12,7 +12,7 @@ def test_load_city_lab_example():
     assert config.site.name == "City Lab"
     assert config.node.id == "city-lab-core"
     assert config.modules.rtl433.enabled is True
-    assert config.devices[0].match.model == "inFactory-TH"
+    assert config.devices[0].match.model == "Bresser-3CH"
 
 
 def test_alternate_site_and_node_are_accepted(tmp_path: Path):

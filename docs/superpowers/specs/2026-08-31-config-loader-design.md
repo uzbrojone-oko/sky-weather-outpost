@@ -29,7 +29,7 @@ The root `OutpostConfig` contains:
 - `devices`: configured devices with match rules and metric names
 - `dashboard`: card names
 
-Validation is intentionally structural for this slice. Required fields must exist and basic scalar types must be correct. The loader must not enforce City Lab-specific IDs, the `inFactory-TH` model, or device id 166.
+Validation is intentionally structural for this slice. Required fields must exist and basic scalar types must be correct. The loader must not enforce City Lab-specific IDs, the `Bresser-3CH` model, or device id 241.
 
 Unknown fields are rejected so configuration typos fail early rather than being silently ignored.
 

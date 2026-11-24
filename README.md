@@ -33,7 +33,7 @@ The project name is also its scope model:
 
 City Lab only:
 
-- `inFactory-TH` sensor via `rtl_433` JSON/JSONL.
+- `Bresser-3CH` sensor via `rtl_433` JSON/JSONL.
 - Temperature and humidity.
 - SQLite storage.
 - `raw_events`, `measurements`, `devices`, `nodes`, `system_events`.

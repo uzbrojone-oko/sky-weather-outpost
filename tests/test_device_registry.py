@@ -22,7 +22,7 @@ def test_registry_returns_declared_device_by_normalized_key():
     config = load_config(Path("config/examples/city-lab.yaml"))
     registry = make_registry(config.devices)
 
-    device = registry.get("rtl433:inFactory-TH:1:166")
+    device = registry.get("rtl433:Bresser-3CH:1:241")
 
     assert device is not None
     assert device.name == "City Lab weather sensor"
@@ -39,7 +39,7 @@ def test_city_lab_collects_battery_status():
     config = load_config(Path("config/examples/city-lab.yaml"))
     registry = make_registry(config.devices)
 
-    device = registry.get("rtl433:inFactory-TH:1:166")
+    device = registry.get("rtl433:Bresser-3CH:1:241")
 
     assert device is not None
     assert "battery_ok" in device.metrics
@@ -47,7 +47,7 @@ def test_city_lab_collects_battery_status():
 
 def test_city_lab_device_key_matches_rtl433_match_fields():
     config = load_config(Path("config/examples/city-lab.yaml"))
-    device = make_registry(config.devices).get("rtl433:inFactory-TH:1:166")
+    device = make_registry(config.devices).get("rtl433:Bresser-3CH:1:241")
 
     assert device is not None
     assert device.key == build_device_key(device.match.model_dump())

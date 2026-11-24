@@ -16,7 +16,7 @@ Pierwsza wersja jest skromna:
 
 ```text
 City Lab:
-  czujnik inFactory-TH
+  czujnik Bresser-3CH
   temperatura
   wilgotność
   SQLite
@@ -195,7 +195,7 @@ Jeden site może mieć wiele node’ów. Na wsi możesz mieć core hub na jednym
 Przykłady:
 
 ```text
-rtl433:inFactory-TH:1:166
+rtl433:Bresser-3CH:1:241
 rtl433:bresser-5in1:<id>
 allsky:t7c
 indi:asi533mc-pro
@@ -217,8 +217,8 @@ JSON jest podstawowym formatem wymiany danych w projekcie.
 ```json
 {
   "time": "2026-07-09 20:30:05",
-  "model": "inFactory-TH",
-  "id": 166,
+  "model": "Bresser-3CH",
+  "id": 241,
   "channel": 1,
   "battery_ok": 1,
   "temperature_C": 20.06,
@@ -237,14 +237,14 @@ Hub nie powinien jednak traktować tego jako finalnego modelu danych. Najpierw z
   "events": [
     {
       "type": "measurement",
-      "device_key": "rtl433:inFactory-TH:1:166",
+      "device_key": "rtl433:Bresser-3CH:1:241",
       "metric": "temperature",
       "value": 20.06,
       "unit": "C"
     },
     {
       "type": "measurement",
-      "device_key": "rtl433:inFactory-TH:1:166",
+      "device_key": "rtl433:Bresser-3CH:1:241",
       "metric": "humidity",
       "value": 47,
       "unit": "%"
@@ -286,7 +286,7 @@ Przykład:
 ```text
 site: city-lab
 node: city-lab-core
-device_key: rtl433:inFactory-TH:1:166
+device_key: rtl433:Bresser-3CH:1:241
 metric: temperature
 value: 20.06
 unit: C
@@ -549,7 +549,7 @@ Preferowane są logi strukturalne, np. JSON:
   "message": "measurement_stored",
   "site": "city-lab",
   "node": "city-lab-core",
-  "device_key": "rtl433:inFactory-TH:1:166",
+  "device_key": "rtl433:Bresser-3CH:1:241",
   "metric": "temperature",
   "value": 20.06,
   "unit": "C"

@@ -14,7 +14,7 @@
 
 - Python requires `>=3.11`.
 - Keep the core generic and vendor-neutral.
-- Do not hardcode `city-lab`, `city-lab-core`, `inFactory-TH`, or device id `166` as validation rules.
+- Do not hardcode `city-lab`, `city-lab-core`, `Bresser-3CH`, or device id `241` as validation rules.
 - Configuration is external YAML.
 - Unknown configuration keys fail validation.
 - This slice does not implement replay, SQLite, API, dashboard, live SDR, or retention.

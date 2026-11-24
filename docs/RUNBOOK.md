@@ -52,7 +52,7 @@ rtl_433 -F json -C si
 For the City Lab sensor:
 
 ```bash
-rtl_433 -F json -C si | jq -c 'select(.model=="inFactory-TH" and .id==166 and .channel==1)'
+rtl_433 -F json -C si | jq -c 'select(.model=="Bresser-3CH" and .id==241 and .channel==1)'
 ```
 
 ## Replay data
