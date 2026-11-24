@@ -7,7 +7,7 @@ Goal: first living outpost.
 - Config loader with `city-lab.yaml`.
 - JSONL replay input.
 - Real sanitized `rtl_433` fixtures captured from the City Lab sensor.
-- `rtl_433` raw JSON mapping for `inFactory-TH` id `166`, channel `1`.
+- `rtl_433` raw JSON mapping for `Bresser-3CH` id `241`, channel `1`.
 - SQLite schema and migrations.
 - Tables: `nodes`, `devices`, `raw_events`, `measurements`, `system_events`, `schema_migrations`.
 - Store raw events separately from normalized measurements.
