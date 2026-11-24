@@ -8,7 +8,6 @@ from app.config.models import OutpostConfig
 from app.storage.database import initialize_database
 from app.storage.repository import get_latest_reading, get_reading_history
 
-
 _PERIODS = {
     "day": (timedelta(days=1), 15 * 60),
     "week": (timedelta(days=7), 60 * 60),
