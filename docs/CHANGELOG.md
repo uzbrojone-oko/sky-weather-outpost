@@ -21,3 +21,6 @@
 - Made RTL-433 ingestion skip malformed frames without stopping the stream.
 - Updated the City Lab example sensor and replay fixture to Bresser-3CH (ID 241).
 - Added a public weather history API with temperature and humidity aggregates for day, week, month and year ranges.
+
+### Fixed
+- Corrected the JSONL replay command examples in the README and Runbook to match the current CLI.
