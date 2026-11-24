@@ -43,6 +43,26 @@ The current public readings endpoint is available locally and to clients on the 
 curl http://127.0.0.1:8000/api/v1/public/current
 ```
 
+Public weather history is available at:
+
+```text
+GET /api/v1/public/history?period=day
+GET /api/v1/public/history?period=week
+GET /api/v1/public/history?period=month
+GET /api/v1/public/history?period=year
+```
+
+History periods are rolling windows ending at the current time:
+
+| Period | Window | Bucket |
+| --- | --- | --- |
+| `day` | 24 hours | 15 minutes |
+| `week` | 7 days | 1 hour |
+| `month` | 30 days | 6 hours |
+| `year` | 365 days | 1 day |
+
+The response contains temperature and humidity aggregates for each non-empty bucket. Each metric includes `average`, `min`, `max`, `unit`, and `samples`. The `from` and `to` timestamps and each point's `at` timestamp are UTC; use `site.timezone` when displaying them locally.
+
 ## Check rtl_433 manually
 
 ```bash
