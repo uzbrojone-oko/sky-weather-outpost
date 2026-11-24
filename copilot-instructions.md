@@ -32,7 +32,7 @@ For v0.1, implement only:
 
 - config loading
 - JSONL replay input
-- `rtl_433` normalization for `inFactory-TH` id `166`
+- `rtl_433` normalization for `Bresser-3CH` id `241`
 - SQLite storage
 - raw events
 - normalized measurements
