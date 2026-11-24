@@ -17,7 +17,7 @@ def make_processor():
     )
 
 
-def test_city_lab_jsonl_replay_emits_three_readings_and_nine_metrics():
+def test_city_lab_jsonl_replay_emits_five_readings_and_fifteen_metrics():
     processor = make_processor()
     fixture = Path("tests/fixtures/rtl433-bresser-sample.jsonl")
 
@@ -27,8 +27,8 @@ def test_city_lab_jsonl_replay_emits_three_readings_and_nine_metrics():
         if frame is not None:
             accepted.append(frame)
 
-    assert len(accepted) == 3
-    assert sum(len(frame.measurements) for frame in accepted) == 9
+    assert len(accepted) == 5
+    assert sum(len(frame.measurements) for frame in accepted) == 15
 
 
 def test_duplicate_jsonl_line_is_dropped():
@@ -61,7 +61,7 @@ def test_duplicate_jsonl_line_without_source_time_is_dropped():
     assert duplicate is None
 
 
-def test_jsonl_file_replay_emits_three_readings_and_nine_metrics():
+def test_jsonl_file_replay_emits_five_readings_and_fifteen_metrics():
     from app.ingest.replay import replay_jsonl
 
     frames = list(
@@ -72,5 +72,5 @@ def test_jsonl_file_replay_emits_three_readings_and_nine_metrics():
         )
     )
 
-    assert len(frames) == 3
-    assert sum(len(frame.measurements) for frame in frames) == 9
+    assert len(frames) == 5
+    assert sum(len(frame.measurements) for frame in frames) == 15
