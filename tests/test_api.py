@@ -28,7 +28,7 @@ def test_public_current_returns_latest_configured_reading(tmp_path: Path):
     received_at = datetime(2026, 9, 24, 20, 0, tzinfo=UTC)
     frames = list(
         replay_jsonl(
-            Path("tests/fixtures/rtl433-sample.jsonl"),
+            Path("tests/fixtures/rtl433-bresser-sample.jsonl"),
             processor,
             received_at,
         )
