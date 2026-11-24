@@ -1,6 +1,6 @@
 import json
 import threading
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.request import urlopen
 
@@ -104,8 +104,6 @@ def test_public_current_returns_empty_devices_before_first_ingest(
 
 
 def test_public_history_returns_aggregated_weather_buckets(tmp_path: Path):
-    from datetime import timedelta
-
     from app.normalizers.rtl433 import MeasurementDraft, NormalizedFrame
 
     config = load_config(Path("config/examples/city-lab.yaml"))
@@ -213,6 +211,52 @@ def test_public_history_rejects_unknown_period(tmp_path: Path):
             }
         else:
             raise AssertionError("Unknown period should return HTTP 400")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_public_history_periods_return_documented_rolling_windows(
+    tmp_path: Path,
+):
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "history-periods.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+
+    server = create_api_server(config, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    expected = {
+        "day": (1, 15 * 60),
+        "week": (7, 60 * 60),
+        "month": (30, 6 * 60 * 60),
+        "year": (365, 24 * 60 * 60),
+    }
+    try:
+        for period, (days, bucket_seconds) in expected.items():
+            url = (
+                f"http://127.0.0.1:{server.server_port}"
+                f"/api/v1/public/history?period={period}"
+            )
+            with urlopen(url, timeout=2) as response:
+                payload = json.load(response)
+                assert response.status == 200
+
+            start_at = datetime.fromisoformat(payload["from"])
+            end_at = datetime.fromisoformat(payload["to"])
+            assert end_at - start_at == timedelta(days=days)
+            assert payload["period"] == period
+            assert payload["bucket_seconds"] == bucket_seconds
+            assert len(payload["devices"]) == 1
+            assert payload["devices"][0]["points"] == []
     finally:
         server.shutdown()
         server.server_close()
