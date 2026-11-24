@@ -101,3 +101,119 @@ def test_public_current_returns_empty_devices_before_first_ingest(
         thread.join(timeout=2)
 
     assert payload["devices"] == []
+
+
+def test_public_history_returns_aggregated_weather_buckets(tmp_path: Path):
+    from datetime import timedelta
+
+    from app.normalizers.rtl433 import MeasurementDraft, NormalizedFrame
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "history.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+    initialize_database(database_path)
+    device = config.devices[0]
+
+    now = datetime.now(UTC)
+    bucket_start = datetime.fromtimestamp(
+        (int(now.timestamp()) // (15 * 60)) * (15 * 60) - (15 * 60),
+        UTC,
+    )
+    for minute, temperature, humidity in ((1, 1.0, 70.0), (3, 3.0, 80.0)):
+        measured_at = bucket_start + timedelta(minutes=minute)
+        frame = NormalizedFrame(
+            device_key=device.key,
+            measured_at=measured_at,
+            received_at=measured_at,
+            measurements=(
+                MeasurementDraft("temperature", temperature, "C"),
+                MeasurementDraft("humidity", humidity, "%"),
+                MeasurementDraft("battery_ok", 1.0, "bool"),
+            ),
+            raw={},
+        )
+        store_frame(
+            database_path,
+            frame,
+            site_id=config.site.id,
+            node=config.node,
+            device=device,
+        )
+
+    server = create_api_server(config, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        url = f"http://127.0.0.1:{server.server_port}/api/v1/public/history?period=day"
+        with urlopen(url, timeout=2) as response:
+            payload = json.load(response)
+            assert response.status == 200
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+    assert payload["period"] == "day"
+    assert payload["bucket_seconds"] == 15 * 60
+    assert len(payload["devices"]) == 1
+    points = payload["devices"][0]["points"]
+    assert len(points) == 1
+    assert points[0]["measurements"]["temperature"] == {
+        "average": 2.0,
+        "min": 1.0,
+        "max": 3.0,
+        "unit": "C",
+        "samples": 2,
+    }
+    assert points[0]["measurements"]["humidity"] == {
+        "average": 75.0,
+        "min": 70.0,
+        "max": 80.0,
+        "unit": "%",
+        "samples": 2,
+    }
+
+
+def test_public_history_rejects_unknown_period(tmp_path: Path):
+    from urllib.error import HTTPError
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "history.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+
+    server = create_api_server(config, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        url = (
+            f"http://127.0.0.1:{server.server_port}"
+            "/api/v1/public/history?period=decade"
+        )
+        try:
+            urlopen(url, timeout=2)
+        except HTTPError as error:
+            assert error.code == 400
+            assert json.load(error) == {
+                "error": "invalid_period",
+                "allowed": ["day", "week", "month", "year"],
+            }
+        else:
+            raise AssertionError("Unknown period should return HTTP 400")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
