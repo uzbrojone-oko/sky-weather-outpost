@@ -28,7 +28,7 @@ def test_rtl433_replay_prints_reading_and_metric_counts(capsys):
     exit_code = main([
         "rtl433", "replay",
         "--config", "config/examples/city-lab.yaml",
-        "--input", "tests/fixtures/rtl433-sample.jsonl",
+        "--input", "tests/fixtures/rtl433-bresser-sample.jsonl",
     ])
 
     captured = capsys.readouterr()
@@ -64,7 +64,7 @@ def test_rtl433_replay_persists_to_configured_database(
             "--config",
             "config/examples/city-lab.yaml",
             "--input",
-            "tests/fixtures/rtl433-sample.jsonl",
+            "tests/fixtures/rtl433-bresser-sample.jsonl",
         ]
     )
 
@@ -106,7 +106,7 @@ def test_rtl433_ingest_persists_jsonl_from_stdin(
     monkeypatch.setattr("app.cli.load_config", lambda _path: config)
 
     fixture_line = (
-        Path("tests/fixtures/rtl433-sample.jsonl")
+        Path("tests/fixtures/rtl433-bresser-sample.jsonl")
         .read_text(encoding="utf-8")
         .splitlines()[1]
     )
