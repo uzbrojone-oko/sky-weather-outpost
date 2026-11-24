@@ -64,7 +64,7 @@ def test_city_lab_fixture_reduces_to_three_readings_and_nine_metrics():
     config = load_config(Path("config/examples/city-lab.yaml"))
     registry = DeviceRegistry(config.devices)
     deduplicator = make_deduplicator()
-    fixture = Path("tests/fixtures/rtl433-sample.jsonl")
+    fixture = Path("tests/fixtures/rtl433-bresser-sample.jsonl")
 
     accepted = []
     for line in fixture.read_text(encoding="utf-8").splitlines():
