@@ -56,7 +56,7 @@ def test_jsonl_replay_stores_raw_events_and_measurements(tmp_path: Path):
     config = load_config(Path("config/examples/city-lab.yaml"))
     processor = Rtl433FrameProcessor(config.devices, config.site.timezone)
     received_at = datetime(2026, 9, 24, 20, 0, tzinfo=UTC)
-    fixture = Path("tests/fixtures/rtl433-sample.jsonl")
+    fixture = Path("tests/fixtures/rtl433-bresser-sample.jsonl")
     database_path = tmp_path / "outpost.sqlite"
 
     initialize_database(database_path)
