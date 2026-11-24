@@ -1,11 +1,20 @@
 import json
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from app.config.models import OutpostConfig
 from app.storage.database import initialize_database
-from app.storage.repository import get_latest_reading
+from app.storage.repository import get_latest_reading, get_reading_history
+
+
+_PERIODS = {
+    "day": (timedelta(days=1), 15 * 60),
+    "week": (timedelta(days=7), 60 * 60),
+    "month": (timedelta(days=30), 6 * 60 * 60),
+    "year": (timedelta(days=365), 24 * 60 * 60),
+}
 
 
 def create_api_server(
@@ -27,12 +36,69 @@ def create_api_server(
             self.wfile.write(body)
 
         def do_GET(self) -> None:
-            if urlsplit(self.path).path != "/api/v1/public/current":
+            request = urlsplit(self.path)
+            if request.path not in {
+                "/api/v1/public/current",
+                "/api/v1/public/history",
+            }:
                 self._send_json(404, {"error": "not_found"})
                 return
 
             if not config.api.public_enabled:
                 self._send_json(404, {"error": "not_found"})
+                return
+
+            if request.path == "/api/v1/public/history":
+                query = parse_qs(request.query)
+                period_values = query.get("period", ["day"])
+                period = period_values[0]
+                if period not in _PERIODS:
+                    self._send_json(
+                        400,
+                        {
+                            "error": "invalid_period",
+                            "allowed": list(_PERIODS),
+                        },
+                    )
+                    return
+
+                duration, bucket_seconds = _PERIODS[period]
+                end_at = datetime.now(UTC)
+                start_at = end_at - duration
+                devices = []
+                for device in config.devices:
+                    if not device.public:
+                        continue
+                    devices.append(
+                        {
+                            "key": device.key,
+                            "name": device.name,
+                            "type": device.type,
+                            "points": get_reading_history(
+                                database_path,
+                                device.key,
+                                start_at=start_at,
+                                end_at=end_at,
+                                bucket_seconds=bucket_seconds,
+                            ),
+                        }
+                    )
+
+                self._send_json(
+                    200,
+                    {
+                        "site": {
+                            "id": config.site.id,
+                            "name": config.site.name,
+                            "timezone": config.site.timezone,
+                        },
+                        "period": period,
+                        "from": start_at.isoformat(),
+                        "to": end_at.isoformat(),
+                        "bucket_seconds": bucket_seconds,
+                        "devices": devices,
+                    },
+                )
                 return
 
             devices = []
