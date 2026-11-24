@@ -80,8 +80,8 @@ def test_jsonl_replay_stores_raw_events_and_measurements(tmp_path: Path):
             "SELECT COUNT(*) FROM measurements"
         ).fetchone()[0]
 
-    assert raw_event_count == 3
-    assert measurement_count == 9
+    assert raw_event_count == 5
+    assert measurement_count == 15
 
     latest = get_latest_reading(database_path, frames[-1].device_key)
     measured_at = (
@@ -109,7 +109,7 @@ def test_get_latest_reading_uses_measurement_time_not_replay_receive_time(
     from app.storage.repository import get_latest_reading
 
     database_path = tmp_path / "outpost.sqlite"
-    device_key = "rtl433:inFactory-TH:1:166"
+    device_key = "rtl433:Bresser-3CH:1:241"
     initialize_database(database_path)
 
     with sqlite3.connect(database_path) as connection:
