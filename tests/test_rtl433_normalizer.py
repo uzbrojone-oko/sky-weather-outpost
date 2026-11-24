@@ -11,7 +11,7 @@ from app.normalizers.rtl433 import (
     parse_line,
 )
 
-FIXTURE = Path(__file__).parent / "fixtures" / "rtl433-sample.jsonl"
+FIXTURE = Path(__file__).parent / "fixtures" / "rtl433-bresser-sample.jsonl"
 TIMEZONE = "Europe/Warsaw"
 RECEIVED_AT = datetime(2026, 9, 24, 19, 1, 36, tzinfo=UTC)
 
