@@ -27,8 +27,8 @@ def make_frame(time, temperature=11.6, rssi=-20):
     return normalize(
         {
             "time": time,
-            "model": "inFactory-TH",
-            "id": 166,
+            "model": "Bresser-3CH",
+            "id": 241,
             "channel": 1,
             "temperature_C": temperature,
             "humidity": 82,
@@ -72,5 +72,5 @@ def test_city_lab_fixture_reduces_to_three_readings_and_nine_metrics():
         if registry.get(frame.device_key) and not deduplicator.is_duplicate(frame):
             accepted.append(frame)
 
-    assert len(accepted) == 3
-    assert sum(len(frame.measurements) for frame in accepted) == 9
+    assert len(accepted) == 5
+    assert sum(len(frame.measurements) for frame in accepted) == 15
