@@ -26,7 +26,7 @@ def measurements_by_metric(line: str) -> dict[str, MeasurementDraft]:
 
 
 def test_known_sensor_frame_is_normalized():
-    result = normalize(parse_line(fixture_lines()[1]), TIMEZONE, RECEIVED_AT)
+    result = normalize(parse_line(fixture_lines()[0]), TIMEZONE, RECEIVED_AT)
 
     assert result.device_key == "rtl433:Bresser-3CH:1:241"
     assert result.measured_at == datetime(2026, 10, 26, 11, 22, 9, tzinfo=UTC)
