@@ -124,7 +124,7 @@ Example capture command:
 
 ```bash
 rtl_433 -F json -C si \
-  | jq -c 'select(.model=="inFactory-TH" and .id==166 and .channel==1)' \
+  | jq -c 'select(.model=="Bresser-3CH" and .id==241 and .channel==1)' \
   >> data/raw_data/rtl433-live.jsonl
 ```
 
