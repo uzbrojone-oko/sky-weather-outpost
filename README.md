@@ -91,11 +91,13 @@ node: city-lab-core
 
 ```bash
 outpost server --config config/examples/city-lab.yaml
-outpost replay data/raw_data/rtl433-live.jsonl --config config/examples/city-lab.yaml
+outpost rtl433 replay --config config/examples/city-lab.yaml --input tests/fixtures/rtl433-bresser-sample.jsonl
 outpost health --config config/examples/city-lab.yaml
 outpost migrate --config config/examples/city-lab.yaml
 outpost backup --config config/examples/city-lab.yaml
 ```
+
+Replay writes to the database selected by the supplied config. Use a test config with a separate SQLite path to avoid adding sample readings to the live database.
 
 ## Documentation
 
