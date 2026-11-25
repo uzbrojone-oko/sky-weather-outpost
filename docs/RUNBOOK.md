@@ -63,6 +63,17 @@ History periods are rolling windows ending at the current time:
 
 The response contains temperature and humidity aggregates for each non-empty bucket. Each metric includes `average`, `min`, `max`, `unit`, and `samples`. The `from` and `to` timestamps and each point's `at` timestamp are UTC; use `site.timezone` when displaying them locally.
 
+View the same history locally in a readable terminal table:
+
+```bash
+outpost weather history --period day
+outpost weather history --period week
+outpost weather history --period month
+outpost weather history --period year
+```
+
+Use `--config PATH` to select a config explicitly; without it, the CLI uses `OUTPOST_CONFIG` or the default user config path.
+
 ## Check rtl_433 manually
 
 ```bash
