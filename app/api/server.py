@@ -8,6 +8,7 @@ from app.history import HISTORY_PERIODS, history_window
 from app.storage.database import initialize_database
 from app.storage.repository import get_latest_reading, get_reading_history
 
+
 def create_api_server(
     config: OutpostConfig,
     *,
