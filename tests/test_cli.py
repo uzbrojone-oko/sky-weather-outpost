@@ -391,8 +391,9 @@ def test_weather_history_formats_aggregates_in_site_timezone(
     capsys,
 ):
     from app import cli
-    from app.config.loader import load_config
     from datetime import timedelta
+
+    from app.config.loader import load_config
 
     config = load_config(Path("config/examples/city-lab.yaml"))
     calls = []
