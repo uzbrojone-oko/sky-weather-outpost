@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from app.config.models import OutpostConfig
+from app.dashboard import DASHBOARD_HTML
 from app.history import HISTORY_PERIODS, history_window
 from app.storage.database import initialize_database
 from app.storage.repository import get_latest_reading, get_reading_history
@@ -27,9 +28,20 @@ def create_api_server(
             self.end_headers()
             self.wfile.write(body)
 
+        def _send_html(self, status: int, html: str) -> None:
+            body = html.encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+
         def do_GET(self) -> None:
             request = urlsplit(self.path)
             if request.path not in {
+                "/",
+                "/dashboard",
                 "/api/v1/public/current",
                 "/api/v1/public/history",
             }:
@@ -38,6 +50,10 @@ def create_api_server(
 
             if not config.api.public_enabled:
                 self._send_json(404, {"error": "not_found"})
+                return
+
+            if request.path in {"/", "/dashboard"}:
+                self._send_html(200, DASHBOARD_HTML)
                 return
 
             if request.path == "/api/v1/public/history":
