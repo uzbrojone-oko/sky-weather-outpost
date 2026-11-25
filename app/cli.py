@@ -12,10 +12,15 @@ from zoneinfo import ZoneInfo
 
 from app.api.server import create_api_server
 from app.config.loader import ConfigError, load_config, resolve_config_path
+from app.history import HISTORY_PERIODS, history_window
 from app.ingest.replay import replay_jsonl
 from app.ingest.rtl433 import Rtl433FrameProcessor
 from app.storage.database import initialize_database
-from app.storage.repository import get_latest_reading, store_frame
+from app.storage.repository import (
+    get_latest_reading,
+    get_reading_history,
+    store_frame,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -63,6 +68,16 @@ def _build_parser() -> argparse.ArgumentParser:
     current_source = current_parser.add_mutually_exclusive_group()
     current_source.add_argument("--config")
     current_source.add_argument("--url")
+
+    history_parser = weather_commands.add_parser(
+        "history", help="Show aggregated weather history"
+    )
+    history_parser.add_argument(
+        "--period",
+        choices=tuple(HISTORY_PERIODS),
+        default="day",
+    )
+    history_parser.add_argument("--config")
 
     return parser
 
@@ -114,6 +129,74 @@ def _format_current_weather(
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+_HISTORY_LABELS = {
+    "day": "ostatnie 24 godziny",
+    "week": "ostatnie 7 dni",
+    "month": "ostatnie 30 dni",
+    "year": "ostatnie 365 dni",
+}
+
+
+def _format_history_number(value: object) -> str:
+    return f"{float(value):.1f}".replace(".", ",")
+
+
+def _format_history(
+    site_name: str,
+    timezone: str,
+    period: str,
+    devices: list[tuple[str, list[dict[str, object]]]],
+) -> str:
+    lines = [f"{site_name} — historia: {_HISTORY_LABELS[period]}"]
+    rows: list[list[str]] = []
+    for device_name, points in devices:
+        for point in points:
+            local_time = datetime.fromisoformat(str(point["at"])).astimezone(
+                ZoneInfo(timezone)
+            )
+            measurements = point["measurements"]
+            cells = [
+                f"{local_time:%d.%m.%Y %H:%M}",
+                device_name,
+            ]
+            for metric in ("temperature", "humidity"):
+                value = measurements.get(metric)
+                if value is None:
+                    cells.append("—")
+                    continue
+                average = _format_history_number(value["average"])
+                minimum = _format_history_number(value["min"])
+                maximum = _format_history_number(value["max"])
+                samples = int(value["samples"])
+                unit = "°C" if metric == "temperature" else "%"
+                cells.append(
+                    f"{average} [{minimum}–{maximum}] {unit} (n={samples})"
+                )
+            rows.append(cells)
+
+    if not rows:
+        lines.append("Brak zapisanych pomiarów w wybranym zakresie.")
+        return "\n".join(lines) + "\n"
+
+    headers = ["Czas lokalny", "Czujnik", "Temperatura", "Wilgotność"]
+    widths = [
+        max(len(headers[index]), *(len(row[index]) for row in rows))
+        for index in range(len(headers))
+    ]
+    lines.append(
+        "  ".join(
+            header.ljust(widths[index])
+            for index, header in enumerate(headers)
+        )
+    )
+    lines.append("  ".join("─" * width for width in widths))
+    lines.extend(
+        "  ".join(cell.ljust(widths[index]) for index, cell in enumerate(row))
+        for row in rows
+    )
+    return "\n".join(lines) + "\n"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -226,6 +309,47 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"readings: {reading_count}")
         print(f"metrics: {metric_count}")
         return 130 if interrupted else 0
+
+    if args.command == "weather" and args.weather_command == "history":
+        try:
+            config = load_config(resolve_config_path(args.config))
+            database_path = Path(config.storage.sqlite_path)
+            initialize_database(database_path)
+            start_at, end_at, bucket_seconds = history_window(args.period)
+            devices = []
+            for device in config.devices:
+                if device.type != "weather_sensor":
+                    continue
+                points = get_reading_history(
+                    database_path,
+                    device.key,
+                    start_at=start_at,
+                    end_at=end_at,
+                    bucket_seconds=bucket_seconds,
+                )
+                if points:
+                    devices.append((device.name, points))
+
+            print(
+                _format_history(
+                    config.site.name,
+                    config.site.timezone,
+                    args.period,
+                    devices,
+                ),
+                end="",
+            )
+        except (
+            ConfigError,
+            OSError,
+            ValueError,
+            sqlite3.Error,
+            KeyError,
+            TypeError,
+        ) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        return 0
 
     if args.command == "weather" and args.weather_command == "current":
         try:
