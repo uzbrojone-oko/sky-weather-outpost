@@ -35,6 +35,10 @@ After updating code or service files, restart the app:
 sudo systemctl restart sky-weather-outpost-ingest.service sky-weather-outpost-api.service
 ```
 
+## Dashboard
+
+Open the weather dashboard locally at `http://127.0.0.1:8000/` or from another device on the LAN at `http://<host-ip>:8000/`. It shows the latest reading and temperature and humidity history for the selected period.
+
 ## Check API
 
 The current public readings endpoint is available locally and to clients on the LAN:

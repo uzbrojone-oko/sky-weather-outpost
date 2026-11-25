@@ -261,3 +261,33 @@ def test_public_history_periods_return_documented_rolling_windows(
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+
+def test_dashboard_is_served_from_api_root(tmp_path: Path):
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "dashboard.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+
+    server = create_api_server(config, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        with urlopen(f"http://127.0.0.1:{server.server_port}/", timeout=2) as response:
+            html = response.read().decode("utf-8")
+            assert response.status == 200
+            assert response.headers.get_content_type() == "text/html"
+            assert "Historia pogody" in html
+            assert 'data-period="year"' in html
+            assert "/api/v1/public/history?period=" in html
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
