@@ -1,19 +1,12 @@
 import json
-from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from app.config.models import OutpostConfig
+from app.history import HISTORY_PERIODS, history_window
 from app.storage.database import initialize_database
 from app.storage.repository import get_latest_reading, get_reading_history
-
-_PERIODS = {
-    "day": (timedelta(days=1), 15 * 60),
-    "week": (timedelta(days=7), 60 * 60),
-    "month": (timedelta(days=30), 6 * 60 * 60),
-    "year": (timedelta(days=365), 24 * 60 * 60),
-}
 
 
 def create_api_server(
@@ -51,19 +44,17 @@ def create_api_server(
                 query = parse_qs(request.query)
                 period_values = query.get("period", ["day"])
                 period = period_values[0]
-                if period not in _PERIODS:
+                if period not in HISTORY_PERIODS:
                     self._send_json(
                         400,
                         {
                             "error": "invalid_period",
-                            "allowed": list(_PERIODS),
+                            "allowed": list(HISTORY_PERIODS),
                         },
                     )
                     return
 
-                duration, bucket_seconds = _PERIODS[period]
-                end_at = datetime.now(UTC)
-                start_at = end_at - duration
+                start_at, end_at, bucket_seconds = history_window(period)
                 devices = []
                 for device in config.devices:
                     if not device.public:
