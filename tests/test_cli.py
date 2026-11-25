@@ -383,3 +383,88 @@ def test_weather_current_uses_environment_config_without_flag(
     assert loaded_paths == [environment_path]
     assert captured.out == "Brak zapisanych pomiarów.\n"
     assert captured.err == ""
+
+
+
+def test_weather_history_formats_aggregates_in_site_timezone(
+    monkeypatch,
+    capsys,
+):
+    from app import cli
+    from app.config.loader import load_config
+    from datetime import timedelta
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    calls = []
+    point = {
+        "at": "2026-11-25T12:00:00+00:00",
+        "measurements": {
+            "temperature": {
+                "average": 10.25,
+                "min": 9.5,
+                "max": 11.0,
+                "unit": "C",
+                "samples": 4,
+            },
+            "humidity": {
+                "average": 63.0,
+                "min": 60.0,
+                "max": 66.0,
+                "unit": "%",
+                "samples": 5,
+            },
+        },
+    }
+
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+    monkeypatch.setattr(cli, "initialize_database", lambda _path: None)
+
+    def fake_history(database_path, device_key, *, start_at, end_at, bucket_seconds):
+        calls.append((device_key, start_at, end_at, bucket_seconds))
+        return [point]
+
+    monkeypatch.setattr(cli, "get_reading_history", fake_history)
+
+    exit_code = cli.main(
+        [
+            "weather",
+            "history",
+            "--period",
+            "week",
+            "--config",
+            "config/examples/city-lab.yaml",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "City Lab — historia: ostatnie 7 dni" in captured.out
+    assert "25.11.2026 13:00" in captured.out
+    assert "10,2 [9,5–11,0] °C (n=4)" in captured.out
+    assert "63,0 [60,0–66,0] % (n=5)" in captured.out
+    assert len(calls) == 1
+    assert calls[0][0] == config.devices[0].key
+    assert calls[0][2] - calls[0][1] == timedelta(days=7)
+    assert calls[0][3] == 3600
+    assert captured.err == ""
+
+
+def test_weather_history_reports_empty_range(monkeypatch, capsys):
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+    monkeypatch.setattr(cli, "initialize_database", lambda _path: None)
+    monkeypatch.setattr(
+        cli,
+        "get_reading_history",
+        lambda *_args, **_kwargs: [],
+    )
+
+    exit_code = cli.main(["weather", "history"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Brak zapisanych pomiarów w wybranym zakresie." in captured.out
+    assert captured.err == ""
