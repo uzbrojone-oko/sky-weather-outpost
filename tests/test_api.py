@@ -300,6 +300,7 @@ def test_dashboard_is_served_from_api_root(tmp_path: Path):
             assert "historyRange.from" in html
             assert "historyRange.to" in html
             assert "maxGapMilliseconds" in html
+            assert "range-bar" in html
             assert "item.timestamp-previous.timestamp>maxGapMilliseconds" in html
             assert "history.bucket_seconds" in html
             assert 'parts.weekday==="Mon"' in html
