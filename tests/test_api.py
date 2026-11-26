@@ -309,6 +309,9 @@ def test_dashboard_is_served_from_api_root(tmp_path: Path):
             assert "function updateDataStatus" in html
             assert "Brakujące przedziały" in html
             assert "bucketGap>1.5" in html
+            assert "Puste przedziały (krok " in html
+            assert 'bucketSeconds/3600+" h"' in html
+            assert 'bucketSeconds/60+" min"' in html
     finally:
         server.shutdown()
         server.server_close()
