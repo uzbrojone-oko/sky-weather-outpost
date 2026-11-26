@@ -4,6 +4,7 @@
 
 ### Added
 - Export weather history as CSV with UTC bucket times and temperature and humidity aggregates.
+- Save weather history command output directly to a path with `--output`.
 - Add a dashboard selector for multiple configured weather sensors; keep it hidden for a single sensor.
 - Show the configured weather sensor battery status in the dashboard footer.
 - Format daily chart time labels in 24-hour `HH.MM` notation.
