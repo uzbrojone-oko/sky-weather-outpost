@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Separated site, node and sensor labels in the example config, API payloads and dashboard.
 - Added a local web dashboard with current readings and selectable temperature and humidity history charts.
 - Configuration-based device registry keyed by normalized device keys.
 - Five-second deduplication of normalized sensor readings.
