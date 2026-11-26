@@ -11,12 +11,13 @@ Secrets must not be committed to git. Use environment variables or a local secre
 ```yaml
 site:
   id: city-lab
-  name: "City Lab"
+  name: "Kraków, Ugorek, PL"
   type: lab
   timezone: Europe/Warsaw
 
 node:
   id: city-lab-core
+  name: "City Lab"
   role: hub
 
 modules:
@@ -44,7 +45,7 @@ api:
 
 devices:
   - key: rtl433:Bresser-3CH:1:241
-    name: "City Lab weather sensor"
+    name: "Weather sensor"
     type: weather_sensor
     public: true
     match:
