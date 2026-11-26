@@ -149,7 +149,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     $("humidityNow").innerHTML = humidity ? number(humidity.value) + "<small>%</small>" : "—";
     $("temperatureAt").textContent = "Pomiar: " + when;
     $("humidityAt").textContent = "Pomiar: " + when;
-    $("sensorLabel").textContent = "Czujnik: " + device.name;
+    $("sensorLabel").textContent = device.name;
   }
 
   function chart(container, points, metric, unit) {
@@ -186,7 +186,10 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       low=Math.floor(low/step)*step; high=Math.ceil(high/step)*step;
       for(let value=low;value<=high+step*0.001;value+=step) yTicks.push(Number(value.toFixed(2)));
     }
-    const x=(index)=>left+(usable.length===1?plotW/2:index*plotW/(usable.length-1));
+    const firstTimestamp=Date.parse(usable[0].at);
+    const lastTimestamp=Date.parse(usable[usable.length-1].at);
+    const xAt=(timestamp)=>left+(lastTimestamp===firstTimestamp?plotW/2:(timestamp-firstTimestamp)*plotW/(lastTimestamp-firstTimestamp));
+    const x=(index)=>xAt(Date.parse(usable[index].at));
     const y=(value)=>top+(high-value)*plotH/(high-low);
     const ns="http://www.w3.org/2000/svg";
     const svg=document.createElementNS(ns,"svg");
@@ -214,22 +217,31 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     }
     const line=usable.map((item,index)=>(index?"L":"M")+" "+x(index)+" "+y(item.average)).join(" ");
     element("path",{d:line,class:"line",stroke:metric==="humidity"?"#5b82a8":"#26785f"});
-    let tickIndexes;
-    let labelStyle;
+    let timeLabels;
     if(period==="day"){
-      const labelCount=Math.min(13,Math.max(3,Math.floor(plotW/54)+1));
-      tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
-      labelStyle={hour:"2-digit",minute:"2-digit",hourCycle:"h23"};
+      const hourFormatter=new Intl.DateTimeFormat("en-GB",{timeZone:timezone,hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
+      const fullHourLabels=[];
+      for(let timestamp=Math.ceil(firstTimestamp/3600000)*3600000;timestamp<=lastTimestamp;timestamp+=3600000){
+        const parts=hourFormatter.formatToParts(new Date(timestamp));
+        const hour=Number(parts.find((part)=>part.type==="hour").value);
+        const minute=parts.find((part)=>part.type==="minute").value;
+        if(minute==="00"&&hour%2===0){
+          const label=hourFormatter.format(new Date(timestamp)).replace(":",".");
+          fullHourLabels.push({x:xAt(timestamp),label});
+        }
+      }
+      const maxLabels=Math.max(3,Math.floor(plotW/54)+1);
+      const stride=Math.max(1,Math.ceil(fullHourLabels.length/maxLabels));
+      timeLabels=fullHourLabels.filter((_,index)=>index%stride===0);
     }else{
       const labelCount=Math.min(8,Math.max(3,Math.floor(plotW/120)+1));
-      tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
-      labelStyle=period==="week"?{weekday:"short",hour:"2-digit"}:{day:"2-digit",month:"2-digit"};
+      const tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
+      const labelStyle=period==="week"?{weekday:"short",hour:"2-digit"}:{day:"2-digit",month:"2-digit"};
+      timeLabels=tickIndexes.map((index)=>({x:x(index),label:dateTime(usable[index].at,labelStyle)}));
     }
-    tickIndexes.forEach((index)=>{
-      const item=usable[index];
-      const anchor=index===0?"start":index===usable.length-1?"end":"middle";
-      const label=dateTime(item.at,labelStyle);
-      element("text",{x:x(index),y:height-8,"text-anchor":anchor,class:"axis-label"},period==="day"?label.replace(":","."):label);
+    timeLabels.forEach((item,index)=>{
+      const anchor=index===0?"start":index===timeLabels.length-1?"end":"middle";
+      element("text",{x:item.x,y:height-8,"text-anchor":anchor,class:"axis-label"},item.label);
     });
     usable.forEach((item,index)=>{
       const dot=element("circle",{cx:x(index),cy:y(item.average),r:3.4,class:"dot",stroke:metric==="humidity"?"#5b82a8":"#26785f"});
