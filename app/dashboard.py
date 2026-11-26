@@ -62,8 +62,8 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
   <section class="heading">
     <div>
       <p class="eyebrow" id="siteLabel">Stacja pogodowa</p>
-      <h1 id="nodeLabel">Sky Weather Outpost</h1>
-      <p class="subtitle" id="rangeLabel">Temperatura i wilgotność w czasie</p>
+      <h1>Historia pogody</h1>
+      <p class="subtitle"><span id="nodeLabel">Węzeł</span> · <span id="rangeLabel">Temperatura i wilgotność w czasie</span></p>
     </div>
     <nav class="periods" aria-label="Zakres historii">
       <button type="button" data-period="day" aria-pressed="true">Dzień</button>
