@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import sqlite3
 import sys
@@ -78,6 +80,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default="day",
     )
     history_parser.add_argument("--config")
+    history_parser.add_argument(
+        "--format",
+        choices=("table", "csv"),
+        default="table",
+        help="Output format (default: table)",
+    )
 
     return parser
 
@@ -197,6 +205,47 @@ def _format_history(
         for row in rows
     )
     return "\n".join(lines) + "\n"
+
+
+def _format_history_csv(
+    devices: list[tuple[str, list[dict[str, object]]]],
+) -> str:
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerow(
+        [
+            "timestamp_utc",
+            "sensor",
+            "temperature_average_C",
+            "temperature_min_C",
+            "temperature_max_C",
+            "temperature_samples",
+            "humidity_average_percent",
+            "humidity_min_percent",
+            "humidity_max_percent",
+            "humidity_samples",
+        ]
+    )
+    for device_name, points in devices:
+        for point in points:
+            measurements = point["measurements"]
+            temperature = measurements.get("temperature", {})
+            humidity = measurements.get("humidity", {})
+            writer.writerow(
+                [
+                    point["at"],
+                    device_name,
+                    temperature.get("average", ""),
+                    temperature.get("min", ""),
+                    temperature.get("max", ""),
+                    temperature.get("samples", ""),
+                    humidity.get("average", ""),
+                    humidity.get("min", ""),
+                    humidity.get("max", ""),
+                    humidity.get("samples", ""),
+                ]
+            )
+    return output.getvalue()
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -330,15 +379,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if points:
                     devices.append((device.name, points))
 
-            print(
-                _format_history(
+            output = (
+                _format_history_csv(devices)
+                if args.format == "csv"
+                else _format_history(
                     config.site.name,
                     config.site.timezone,
                     args.period,
                     devices,
-                ),
-                end="",
+                )
             )
+            print(output, end="")
         except (
             ConfigError,
             OSError,
