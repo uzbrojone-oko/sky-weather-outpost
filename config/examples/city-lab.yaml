@@ -34,7 +34,7 @@ api:
 
 devices:
   - key: rtl433:Bresser-3CH:1:241
-    name: "Weather sensor"
+    name: "Bresser"
     type: weather_sensor
     public: true
     match:
