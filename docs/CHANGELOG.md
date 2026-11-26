@@ -29,5 +29,6 @@
 - Added a terminal history command with local-time bucket summaries for day, week, month and year.
 
 ### Fixed
+- Align daily chart labels with full clock hours and display the configured sensor name directly.
 - Restored readable time labels on daily weather charts.
 - Corrected the JSONL replay command examples in the README and Runbook to match the current CLI.
