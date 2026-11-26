@@ -41,7 +41,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
 .graph{height:250px;margin-top:9px;position:relative}
 .graph svg{width:100%;height:100%;overflow:visible}
 .gridline{stroke:#e9eeea;stroke-width:1}.axis-label{fill:#89968f;font-size:11px;font-family:inherit}.midnight-line{stroke:#aab9b0;stroke-width:1;stroke-dasharray:4 4}
-.zero-line{stroke:#76867d;stroke-width:1.5;stroke-dasharray:6 5}.range{fill:#dceee4;opacity:.8}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.zero-line{stroke:#76867d;stroke-width:1.5;stroke-dasharray:6 5}.range{fill:#dceee4;opacity:.8}.range-bar{stroke:#dceee4;stroke-width:6;stroke-linecap:round}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .dot{fill:#fff;stroke:var(--green);stroke-width:2}.empty{height:100%;display:grid;place-items:center;color:#96a29b;font-size:14px}
 .footer{display:flex;justify-content:space-between;gap:12px;color:#8a9790;font-size:12px;padding:10px 3px}
 .footer strong{color:#65756d;font-weight:600}
@@ -235,7 +235,11 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       segments[segments.length-1].push({item,index});
     });
     segments.forEach((segment)=>{
-      if(segment.length<2) return;
+      if(segment.length===1){
+        const {item,index}=segment[0];
+        if(item.max>item.min) element("line",{x1:x(index),y1:y(item.max),x2:x(index),y2:y(item.min),class:"range-bar"});
+        return;
+      }
       const upper=segment.map(({item,index})=>x(index)+","+y(item.max));
       const lower=segment.map(({item,index})=>x(index)+","+y(item.min)).reverse();
       element("polygon",{points:upper.concat(lower).join(" "),class:"range"});
