@@ -153,7 +153,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     $("sensorLabel").textContent = "Czujnik: " + device.name;
   }
 
-  function updateDataStatus(device, history) {
+  function updateDataStatus(device, historyDevice, history) {
     const status=$("dataStatus");
     const latest=device&&(device.measured_at||device.received_at);
     if(!latest){
@@ -164,7 +164,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     const age=Math.max(0,Date.now()-latestTime);
     const ageLabel=age<60000?"przed chwilą":age<3600000?Math.floor(age/60000)+" min temu":age<86400000?Math.floor(age/3600000)+" godz. temu":Math.floor(age/86400000)+" dni temu";
     const latestLabel=dateTime(latest,{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"});
-    const points=(device.points||[]).map((point)=>Date.parse(point.at)).filter(Number.isFinite).sort((a,b)=>a-b);
+    const points=(historyDevice&&historyDevice.points||[]).map((point)=>Date.parse(point.at)).filter(Number.isFinite).sort((a,b)=>a-b);
     const bucketMilliseconds=(Number(history.bucket_seconds)||0)*1000;
     let missingBuckets=0;
     if(bucketMilliseconds>0){
@@ -332,8 +332,9 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     latestWeather(current);
     const devices=history.devices||[];
     const weather=devices.find((item)=>item.type==="weather_sensor")||devices[0];
+    const currentWeather=(current.devices||[]).find((item)=>item.type==="weather_sensor");
     const points=weather?weather.points||[]:[];
-    updateDataStatus(weather,history);
+    updateDataStatus(currentWeather,weather,history);
     chart($("temperatureChart"),points,"temperature","°C",history.bucket_seconds);
     chart($("humidityChart"),points,"humidity","%",history.bucket_seconds);
     $("updatedAt").textContent=dateTime(new Date().toISOString(),{hour:"2-digit",minute:"2-digit",second:"2-digit"});
