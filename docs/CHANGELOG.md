@@ -29,6 +29,7 @@
 - Added a terminal history command with local-time bucket summaries for day, week, month and year.
 
 ### Fixed
+- Show the latest measurement age and count missing history buckets in the dashboard footer.
 - Align daily chart labels with full clock hours and show the sensor name with a "Czujnik:" label.
 - Mark midnight on daily weather charts to separate calendar days.
 - Restored readable time labels on daily weather charts.
