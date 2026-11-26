@@ -194,15 +194,19 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     const xAt=(timestamp)=>left+(lastTimestamp===firstTimestamp?plotW/2:(timestamp-firstTimestamp)*plotW/(lastTimestamp-firstTimestamp));
     const x=(index)=>xAt(Date.parse(usable[index].at));
     const y=(value)=>top+(high-value)*plotH/(high-low);
-    const midnightXs=[];
-    if(period==="day"){
-      const midnightFormatter=new Intl.DateTimeFormat("en-GB",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
-      for(let timestamp=Math.ceil(firstTimestamp/3600000)*3600000;timestamp<=lastTimestamp;timestamp+=3600000){
-        const parts=midnightFormatter.formatToParts(new Date(timestamp));
-        const hour=parts.find((part)=>part.type==="hour").value;
-        const minute=parts.find((part)=>part.type==="minute").value;
-        if(hour==="00"&&minute==="00") midnightXs.push(xAt(timestamp));
-      }
+    const boundaryXs=[];
+    const monthBoundaries=[];
+    const calendarFormatter=new Intl.DateTimeFormat("en-GB",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit",weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
+    for(let timestamp=Math.ceil(firstTimestamp/3600000)*3600000;timestamp<=lastTimestamp;timestamp+=3600000){
+      const parts=Object.fromEntries(calendarFormatter.formatToParts(new Date(timestamp)).map((part)=>[part.type,part.value]));
+      if(parts.hour!=="00"||parts.minute!=="00") continue;
+      const isMonthStart=parts.day==="01";
+      const isBoundary=period==="day"
+        ||(period==="week"&&parts.weekday==="Mon")
+        ||(period==="month"&&isMonthStart)
+        ||(period==="year"&&isMonthStart&&parts.month==="01");
+      if(isBoundary) boundaryXs.push(xAt(timestamp));
+      if(period==="year"&&isMonthStart) monthBoundaries.push(timestamp);
     }
 
     const ns="http://www.w3.org/2000/svg";
@@ -226,7 +230,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     const upper=usable.map((item,index)=>x(index)+","+y(item.max));
     const lower=usable.map((item,index)=>x(index)+","+y(item.min)).reverse();
     element("polygon",{points:upper.concat(lower).join(" "),class:"range"});
-    midnightXs.forEach((xx)=>element("line",{x1:xx,y1:top,x2:xx,y2:top+plotH,class:"midnight-line"}));
+    boundaryXs.forEach((xx)=>element("line",{x1:xx,y1:top,x2:xx,y2:top+plotH,class:"midnight-line"}));
     if(metric==="temperature"){
       element("line",{x1:left,y1:y(0),x2:width-right,y2:y(0),class:"zero-line"});
     }
@@ -248,13 +252,17 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       const maxLabels=Math.max(3,Math.floor(plotW/54)+1);
       const stride=Math.max(1,Math.ceil(fullHourLabels.length/maxLabels));
       timeLabels=fullHourLabels.filter((_,index)=>index%stride===0);
+    }else if(period==="year"){
+      const monthFormatter=new Intl.DateTimeFormat("pl-PL",{timeZone:timezone,month:"short",year:"2-digit"});
+      const monthTicks=[firstTimestamp,...monthBoundaries.filter((timestamp)=>timestamp>firstTimestamp+60000)];
+      const monthStride=Math.max(1,Math.ceil(monthTicks.length*40/plotW));
+      timeLabels=monthTicks.filter((_,index)=>index===0||index%monthStride===0).map((timestamp)=>({
+        x:xAt(timestamp),
+        label:monthFormatter.format(new Date(timestamp)).replace(".","")
+      }));
     }else{
       const labelCount=Math.min(8,Math.max(3,Math.floor(plotW/120)+1));
-      const labelStyle=period==="week"
-        ?{weekday:"short",hour:"2-digit"}
-        :period==="year"
-          ?{month:"short",year:"2-digit"}
-          :{day:"2-digit",month:"2-digit"};
+      const labelStyle=period==="week"?{weekday:"short",hour:"2-digit"}:{day:"2-digit",month:"2-digit"};
       timeLabels=Array.from({length:labelCount},(_,index)=>{
         const timestamp=firstTimestamp+(lastTimestamp-firstTimestamp)*index/(labelCount-1);
         return {x:xAt(timestamp),label:dateTime(timestamp,labelStyle)};

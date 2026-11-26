@@ -299,6 +299,9 @@ def test_dashboard_is_served_from_api_root(tmp_path: Path):
             assert "midnight-line" in html
             assert "historyRange.from" in html
             assert "historyRange.to" in html
+            assert 'parts.weekday==="Mon"' in html
+            assert "monthBoundaries" in html
+            assert 'parts.month==="01"' in html
     finally:
         server.shutdown()
         server.server_close()
