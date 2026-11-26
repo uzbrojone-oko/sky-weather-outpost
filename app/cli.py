@@ -86,6 +86,10 @@ def _build_parser() -> argparse.ArgumentParser:
         default="table",
         help="Output format (default: table)",
     )
+    history_parser.add_argument(
+        "--output",
+        help="Write the result to a file instead of stdout",
+    )
 
     return parser
 
@@ -389,7 +393,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                     devices,
                 )
             )
-            print(output, end="")
+            if args.output:
+                Path(args.output).write_text(output, encoding="utf-8")
+                print(f"History written to {args.output}", file=sys.stderr)
+            else:
+                print(output, end="")
         except (
             ConfigError,
             OSError,

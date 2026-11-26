@@ -547,3 +547,54 @@ def test_weather_history_exports_csv(monkeypatch, capsys):
     ]
     assert captured.err == ""
 
+def test_weather_history_csv_writes_to_output_file(tmp_path, monkeypatch, capsys):
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    output_path = tmp_path / "weather.csv"
+    point = {
+        "at": "2026-11-25T12:00:00+00:00",
+        "measurements": {
+            "temperature": {
+                "average": 10.0,
+                "min": 9.0,
+                "max": 11.0,
+                "samples": 2,
+            },
+            "humidity": {
+                "average": 63.0,
+                "min": 60.0,
+                "max": 66.0,
+                "samples": 3,
+            },
+        },
+    }
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+    monkeypatch.setattr(cli, "initialize_database", lambda _path: None)
+    monkeypatch.setattr(
+        cli,
+        "get_reading_history",
+        lambda *_args, **_kwargs: [point],
+    )
+
+    exit_code = cli.main(
+        [
+            "weather",
+            "history",
+            "--format",
+            "csv",
+            "--output",
+            str(output_path),
+            "--config",
+            "config/examples/city-lab.yaml",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert output_path.read_text(encoding="utf-8").startswith("timestamp_utc,sensor,")
+    assert "2026-11-25T12:00:00+00:00" in output_path.read_text(encoding="utf-8")
+    assert captured.out == ""
+    assert captured.err == f"History written to {output_path}\n"
+
