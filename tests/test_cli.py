@@ -439,7 +439,7 @@ def test_weather_history_formats_aggregates_in_site_timezone(
 
     captured = capsys.readouterr()
     assert exit_code == 0
-    assert "City Lab — historia: ostatnie 7 dni" in captured.out
+    assert "Kraków, Ugorek, PL — historia: ostatnie 7 dni" in captured.out
     assert "25.11.2026 13:00" in captured.out
     assert "10,2 [9,5–11,0] °C (n=4)" in captured.out
     assert "63,0 [60,0–66,0] % (n=5)" in captured.out
