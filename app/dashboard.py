@@ -214,13 +214,26 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     }
     const line=usable.map((item,index)=>(index?"L":"M")+" "+x(index)+" "+y(item.average)).join(" ");
     element("path",{d:line,class:"line",stroke:metric==="humidity"?"#5b82a8":"#26785f"});
-    const labelCount=Math.min(8,Math.max(3,Math.floor(plotW/120)+1));
-    const tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
+    let tickIndexes;
+    let labelStyle;
+    if(period==="day"){
+      const hourlyIndexes=usable.map((item,index)=>{
+        const minute=new Intl.DateTimeFormat("en-GB",{timeZone:timezone,minute:"2-digit"}).format(new Date(item.at));
+        return minute==="00"?index:null;
+      }).filter((index)=>index!==null);
+      const maxHourlyLabels=Math.max(3,Math.floor(plotW/22));
+      const hourlyStride=Math.max(1,Math.ceil(hourlyIndexes.length/maxHourlyLabels));
+      tickIndexes=hourlyIndexes.filter((_,index)=>index%hourlyStride===0);
+      labelStyle={hour:"2-digit"};
+    }else{
+      const labelCount=Math.min(8,Math.max(3,Math.floor(plotW/120)+1));
+      tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
+      labelStyle=period==="week"?{weekday:"short",hour:"2-digit"}:{day:"2-digit",month:"2-digit"};
+    }
     tickIndexes.forEach((index)=>{
       const item=usable[index];
-      const style=period==="day"?{hour:"2-digit",minute:"2-digit"}:period==="week"?{weekday:"short",hour:"2-digit"}:{day:"2-digit",month:"2-digit"};
       const anchor=index===0?"start":index===usable.length-1?"end":"middle";
-      element("text",{x:x(index),y:height-8,"text-anchor":anchor,class:"axis-label"},dateTime(item.at,style));
+      element("text",{x:x(index),y:height-8,"text-anchor":anchor,class:"axis-label"},dateTime(item.at,labelStyle));
     });
     usable.forEach((item,index)=>{
       const dot=element("circle",{cx:x(index),cy:y(item.average),r:3.4,class:"dot",stroke:metric==="humidity"?"#5b82a8":"#26785f"});
