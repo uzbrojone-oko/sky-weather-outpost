@@ -44,7 +44,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
 .zero-line{stroke:#76867d;stroke-width:1.5;stroke-dasharray:6 5}.range{fill:#dceee4;opacity:.8}.range-bar{stroke:#dceee4;stroke-width:6;stroke-linecap:round}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .dot{fill:#fff;stroke:var(--green);stroke-width:2}.empty{height:100%;display:grid;place-items:center;color:#96a29b;font-size:14px}
 .footer{display:flex;justify-content:space-between;gap:12px;color:#8a9790;font-size:12px;padding:10px 3px}
-.footer strong{color:#65756d;font-weight:600}.data-status{color:#65756d}
+.footer strong{color:#65756d;font-weight:600}.data-status{color:#65756d}.battery-ok{color:#26785f}.battery-low{color:#a33b32}.battery-unknown{color:#89968f}
 @media(max-width:700px){.shell{padding:22px 15px 34px}.topbar{margin-bottom:29px}.heading{display:block}.periods{width:max-content;margin-top:20px;max-width:100%}.periods button{padding:9px 11px}.cards{gap:10px}.card{padding:17px 15px;min-height:118px}.card-value{font-size:30px}.panel{padding:17px 14px 12px}.graph{height:220px}.footer{display:block;line-height:1.8}}
 @media(max-width:390px){.periods{gap:0}.periods button{padding:8px 9px;font-size:12px}.card-foot{font-size:11px}}
 </style>
@@ -106,6 +106,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
 
   <footer class="footer">
     <span id="sensorLabel">Czujnik —</span>
+    <span id="batteryStatus" class="battery-unknown">Bateria: —</span>
     <span id="dataStatus">Ostatni pomiar: —</span>
     <span>Ostatnia aktualizacja: <strong id="updatedAt">—</strong></span>
   </footer>
@@ -139,6 +140,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       $("temperatureAt").textContent = "Brak odebranego odczytu";
       $("humidityAt").textContent = "Brak odebranego odczytu";
       $("sensorLabel").textContent = "Brak skonfigurowanego czujnika";
+      setBatteryStatus(null);
       return;
     }
     const measurements = device.measurements || {};
@@ -151,6 +153,20 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     $("temperatureAt").textContent = "Pomiar: " + when;
     $("humidityAt").textContent = "Pomiar: " + when;
     $("sensorLabel").textContent = "Czujnik: " + device.name;
+    setBatteryStatus(measurements.battery_ok);
+  }
+
+  function setBatteryStatus(battery) {
+    const status=$("batteryStatus");
+    status.classList.remove("battery-ok","battery-low","battery-unknown");
+    if(!battery||!Number.isFinite(Number(battery.value))){
+      status.textContent="Bateria: brak danych";
+      status.classList.add("battery-unknown");
+      return;
+    }
+    const isOk=Number(battery.value)===1;
+    status.textContent=isOk?"Bateria: OK":"Bateria: niska";
+    status.classList.add(isOk?"battery-ok":"battery-low");
   }
 
   function updateDataStatus(device, historyDevice, history) {
