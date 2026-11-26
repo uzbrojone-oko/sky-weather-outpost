@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Query weather history over a custom ISO-8601 time range with selectable aggregation buckets.
 - Export weather history as CSV with UTC bucket times and temperature and humidity aggregates.
 - Save weather history command output directly to a path with `--output`.
 - Add a dashboard selector for multiple configured weather sensors; keep it hidden for a single sensor.

@@ -598,3 +598,70 @@ def test_weather_history_csv_writes_to_output_file(tmp_path, monkeypatch, capsys
     assert captured.out == ""
     assert captured.err == f"History written to {output_path}\n"
 
+def test_weather_history_accepts_custom_range_and_bucket(monkeypatch, capsys):
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    calls = []
+    point = {
+        "at": "2026-11-24T11:00:00+00:00",
+        "measurements": {},
+    }
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+    monkeypatch.setattr(cli, "initialize_database", lambda _path: None)
+
+    def fake_history(database_path, device_key, *, start_at, end_at, bucket_seconds):
+        calls.append((start_at, end_at, bucket_seconds))
+        return [point]
+
+    monkeypatch.setattr(cli, "get_reading_history", fake_history)
+
+    exit_code = cli.main(
+        [
+            "weather",
+            "history",
+            "--from",
+            "2026-11-24T12:00:00+01:00",
+            "--to",
+            "2026-11-24T14:00:00+01:00",
+            "--bucket",
+            "15m",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert calls[0][0].isoformat() == "2026-11-24T11:00:00+00:00"
+    assert calls[0][1].isoformat() == "2026-11-24T13:00:00+00:00"
+    assert calls[0][2] == 15 * 60
+    assert "zakres 24.11.2026 12:00–24.11.2026 14:00 · kubełek 15m" in captured.out
+    assert captured.err == ""
+
+
+def test_weather_history_requires_timezone_offset_for_custom_range(
+    monkeypatch,
+    capsys,
+):
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+    monkeypatch.setattr(cli, "initialize_database", lambda _path: None)
+
+    exit_code = cli.main(
+        [
+            "weather",
+            "history",
+            "--from",
+            "2026-11-24T12:00:00",
+            "--to",
+            "2026-11-24T14:00:00",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert "--from must include a timezone offset" in captured.err
+
