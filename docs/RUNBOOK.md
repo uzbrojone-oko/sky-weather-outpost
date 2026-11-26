@@ -76,9 +76,10 @@ outpost weather history --period month
 outpost weather history --period year
 outpost weather history --period month --format csv --output weather-month.csv
 # Or pipe CSV to stdout with: outpost weather history --period month --format csv > weather-month.csv
+outpost weather history --from 2026-11-24T00:00:00+01:00 --to 2026-11-25T00:00:00+01:00 --bucket 15m --format csv --output weather-custom.csv
 ```
 
-The default output is a readable table. Use `--format csv` to write CSV to stdout; timestamps in CSV are UTC. Add `--output PATH` to save it directly, or redirect stdout to a file.
+The default output is a readable table. Use `--format csv` to write CSV to stdout; timestamps in CSV are UTC. Add `--output PATH` to save it directly, or redirect stdout to a file. Use `--from` and `--to` together for a custom ISO-8601 range with an explicit timezone offset; the start is inclusive and the end is exclusive. Select a bucket with `--bucket` (`15m`, `1h`, `6h` or `1d`).
 
 Use `--config PATH` to select a config explicitly; without it, the CLI uses `OUTPOST_CONFIG` or the default user config path.
 
