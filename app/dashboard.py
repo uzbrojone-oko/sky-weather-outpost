@@ -19,7 +19,7 @@ button{font:inherit}.shell{max-width:1220px;margin:auto;padding:34px 28px 48px}
 .heading{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:26px}
 .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);font-weight:750;margin:0 0 9px}
 h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:720;line-height:1.05}
-.subtitle{color:var(--muted);margin:10px 0 0;font-size:15px}
+.subtitle{color:var(--muted);margin:10px 0 0;font-size:15px}.sensor-picker{display:flex;align-items:center;gap:8px;margin-top:12px;color:var(--muted);font-size:13px}.sensor-picker[hidden]{display:none}.sensor-picker select{max-width:100%;padding:7px 10px;border:1px solid #dfe7e0;border-radius:9px;background:#fff;color:#244236;font:inherit}
 .periods{display:flex;gap:4px;background:#e8ede8;border:1px solid #dfe7e0;padding:4px;border-radius:13px;flex-shrink:0}
 .periods button{border:0;border-radius:9px;padding:9px 14px;color:#66756d;background:transparent;cursor:pointer;font-size:13px;font-weight:650;transition:.15s}
 .periods button:hover{color:#183d30}.periods button[aria-pressed=true]{background:#fff;color:#205b47;box-shadow:0 2px 7px #183d3018}
@@ -64,6 +64,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       <p class="eyebrow" id="siteLabel">Stacja pogodowa</p>
       <h1>Historia pogody</h1>
       <p class="subtitle"><span id="nodeLabel">Węzeł</span> · <span id="rangeLabel">Temperatura i wilgotność w czasie</span></p>
+      <label id="sensorPicker" class="sensor-picker" hidden for="sensorSelect">Czujnik<select id="sensorSelect" aria-label="Wybierz czujnik pogodowy"></select></label>
     </div>
     <nav class="periods" aria-label="Zakres historii">
       <button type="button" data-period="day" aria-pressed="true">Dzień</button>
@@ -118,6 +119,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
   let timezone = "Europe/Warsaw";
   let currentData = null;
   let historyData = null;
+  let selectedDeviceKey = null;
   let resizeTimer;
 
   const $ = (id) => document.getElementById(id);
@@ -132,14 +134,38 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     });
   });
 
-  function latestWeather(payload) {
-    const device = (payload.devices || []).find((item) => item.type === "weather_sensor");
-    if (!device) {
+  function updateSensorSelector(devices) {
+    const picker=$("sensorPicker");
+    const select=$("sensorSelect");
+    const selected=devices.some((device)=>device.key===selectedDeviceKey);
+    if(!selected) selectedDeviceKey=devices.length?devices[0].key:null;
+    picker.hidden=devices.length<2;
+    select.replaceChildren();
+    devices.forEach((device)=>{
+      const option=document.createElement("option");
+      option.value=device.key;
+      option.textContent=device.name;
+      select.appendChild(option);
+    });
+    if(selectedDeviceKey) select.value=selectedDeviceKey;
+  }
+
+  function latestWeather(device, configuredDevice) {
+    if (!configuredDevice) {
       $("temperatureNow").innerHTML = "—<small>°C</small>";
       $("humidityNow").innerHTML = "—<small>%</small>";
       $("temperatureAt").textContent = "Brak odebranego odczytu";
       $("humidityAt").textContent = "Brak odebranego odczytu";
       $("sensorLabel").textContent = "Brak skonfigurowanego czujnika";
+      setBatteryStatus(null);
+      return;
+    }
+    if (!device) {
+      $("temperatureNow").innerHTML = "—<small>°C</small>";
+      $("humidityNow").innerHTML = "—<small>%</small>";
+      $("temperatureAt").textContent = "Brak odebranego odczytu";
+      $("humidityAt").textContent = "Brak odebranego odczytu";
+      $("sensorLabel").textContent = "Czujnik: " + configuredDevice.name;
       setBatteryStatus(null);
       return;
     }
@@ -347,11 +373,12 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     $("siteLabel").textContent=(current.site && current.site.name)||(history.site && history.site.name)||"Stacja pogodowa";
     $("nodeLabel").textContent=(current.node && current.node.name)||(history.node && history.node.name)||$("siteLabel").textContent;
     $("rangeLabel").textContent=periodLabels[period]+" · agregaty temperatury i wilgotności";
-    latestWeather(current);
-    const devices=history.devices||[];
-    const weather=devices.find((item)=>item.type==="weather_sensor")||devices[0];
-    const currentWeather=(current.devices||[]).find((item)=>item.type==="weather_sensor");
+    const weatherDevices=(history.devices||[]).filter((item)=>item.type==="weather_sensor");
+    updateSensorSelector(weatherDevices);
+    const weather=weatherDevices.find((item)=>item.key===selectedDeviceKey)||null;
+    const currentWeather=(current.devices||[]).find((item)=>item.key===selectedDeviceKey)||null;
     const points=weather?weather.points||[]:[];
+    latestWeather(currentWeather,weather);
     updateDataStatus(currentWeather,weather,history);
     chart($("temperatureChart"),points,"temperature","°C",history.bucket_seconds);
     chart($("humidityChart"),points,"humidity","%",history.bucket_seconds);
@@ -375,6 +402,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     }
   }
 
+  $("sensorSelect").addEventListener("change",()=>{selectedDeviceKey=$("sensorSelect").value;render();});
   window.addEventListener("resize",()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(render,120);});
   load();
   window.setInterval(load,60000);
