@@ -40,7 +40,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
 .legend i{display:inline-block;width:19px;height:3px;background:var(--green);border-radius:3px}
 .graph{height:250px;margin-top:9px;position:relative}
 .graph svg{width:100%;height:100%;overflow:visible}
-.gridline{stroke:#e9eeea;stroke-width:1}.axis-label{fill:#89968f;font-size:11px;font-family:inherit}
+.gridline{stroke:#e9eeea;stroke-width:1}.axis-label{fill:#89968f;font-size:11px;font-family:inherit}.midnight-line{stroke:#aab9b0;stroke-width:1;stroke-dasharray:4 4}
 .zero-line{stroke:#76867d;stroke-width:1.5;stroke-dasharray:6 5}.range{fill:#dceee4;opacity:.8}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .dot{fill:#fff;stroke:var(--green);stroke-width:2}.empty{height:100%;display:grid;place-items:center;color:#96a29b;font-size:14px}
 .footer{display:flex;justify-content:space-between;gap:12px;color:#8a9790;font-size:12px;padding:10px 3px}
@@ -191,6 +191,17 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     const xAt=(timestamp)=>left+(lastTimestamp===firstTimestamp?plotW/2:(timestamp-firstTimestamp)*plotW/(lastTimestamp-firstTimestamp));
     const x=(index)=>xAt(Date.parse(usable[index].at));
     const y=(value)=>top+(high-value)*plotH/(high-low);
+    const midnightXs=[];
+    if(period==="day"){
+      const midnightFormatter=new Intl.DateTimeFormat("en-GB",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
+      for(let timestamp=Math.ceil(firstTimestamp/3600000)*3600000;timestamp<=lastTimestamp;timestamp+=3600000){
+        const parts=midnightFormatter.formatToParts(new Date(timestamp));
+        const hour=parts.find((part)=>part.type==="hour").value;
+        const minute=parts.find((part)=>part.type==="minute").value;
+        if(hour==="00"&&minute==="00") midnightXs.push(xAt(timestamp));
+      }
+    }
+
     const ns="http://www.w3.org/2000/svg";
     const svg=document.createElementNS(ns,"svg");
     svg.setAttribute("viewBox","0 0 "+width+" "+height);
@@ -212,6 +223,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     const upper=usable.map((item,index)=>x(index)+","+y(item.max));
     const lower=usable.map((item,index)=>x(index)+","+y(item.min)).reverse();
     element("polygon",{points:upper.concat(lower).join(" "),class:"range"});
+    midnightXs.forEach((xx)=>element("line",{x1:xx,y1:top,x2:xx,y2:top+plotH,class:"midnight-line"}));
     if(metric==="temperature"){
       element("line",{x1:left,y1:y(0),x2:width-right,y2:y(0),class:"zero-line"});
     }
