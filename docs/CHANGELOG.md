@@ -35,3 +35,4 @@
 - Corrected the JSONL replay command examples in the README and Runbook to match the current CLI.
 - Space chart time labels evenly across the requested period, including when measurements are sparse.
 - Mark Mondays, month starts and year starts on weather charts; show monthly labels in the year view.
+- Break chart lines and min–max ranges where one or more history buckets are missing.
