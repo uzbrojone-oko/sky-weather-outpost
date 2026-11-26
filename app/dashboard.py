@@ -217,13 +217,8 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     let tickIndexes;
     let labelStyle;
     if(period==="day"){
-      const hourlyIndexes=usable.map((item,index)=>{
-        const minute=new Intl.DateTimeFormat("en-GB",{timeZone:timezone,minute:"2-digit"}).format(new Date(item.at));
-        return minute==="00"?index:null;
-      }).filter((index)=>index!==null);
-      const maxHourlyLabels=Math.max(3,Math.floor(plotW/22));
-      const hourlyStride=Math.max(1,Math.ceil(hourlyIndexes.length/maxHourlyLabels));
-      tickIndexes=hourlyIndexes.filter((_,index)=>index%hourlyStride===0);
+      const labelCount=Math.min(13,Math.max(3,Math.floor(plotW/54)+1));
+      tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
       labelStyle={hour:"2-digit"};
     }else{
       const labelCount=Math.min(8,Math.max(3,Math.floor(plotW/120)+1));
