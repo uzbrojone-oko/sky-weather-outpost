@@ -64,6 +64,10 @@ def test_public_current_returns_latest_configured_reading(tmp_path: Path):
         "name": config.site.name,
         "timezone": config.site.timezone,
     }
+    assert payload["node"] == {
+        "id": config.node.id,
+        "name": config.node.name or config.site.name,
+    }
     assert len(payload["devices"]) == 1
 
     latest_device = payload["devices"][0]
@@ -159,6 +163,10 @@ def test_public_history_returns_aggregated_weather_buckets(tmp_path: Path):
         thread.join(timeout=2)
 
     assert payload["period"] == "day"
+    assert payload["node"] == {
+        "id": config.node.id,
+        "name": config.node.name or config.site.name,
+    }
     assert payload["bucket_seconds"] == 15 * 60
     assert len(payload["devices"]) == 1
     points = payload["devices"][0]["points"]
