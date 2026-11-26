@@ -307,6 +307,10 @@ def test_dashboard_is_served_from_api_root(tmp_path: Path):
             assert "monthBoundaries" in html
             assert 'parts.month==="01"' in html
             assert "function updateDataStatus" in html
+            assert "function updateSensorSelector" in html
+            assert "picker.hidden=devices.length<2" in html
+            assert "selectedDeviceKey" in html
+            assert "latestWeather(currentWeather,weather)" in html
             assert "function setBatteryStatus" in html
             assert "Bateria: niska" in html
             assert "Bateria: OK" in html
