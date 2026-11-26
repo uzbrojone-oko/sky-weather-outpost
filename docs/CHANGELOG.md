@@ -33,3 +33,4 @@
 - Mark midnight on daily weather charts to separate calendar days.
 - Restored readable time labels on daily weather charts.
 - Corrected the JSONL replay command examples in the README and Runbook to match the current CLI.
+- Space chart time labels evenly across the requested period, including when measurements are sparse.
