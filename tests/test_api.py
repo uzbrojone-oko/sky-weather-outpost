@@ -295,6 +295,7 @@ def test_dashboard_is_served_from_api_root(tmp_path: Path):
             assert "Historia pogody" in html
             assert 'data-period="year"' in html
             assert "/api/v1/public/history?period=" in html
+            assert '"Czujnik: " + device.name' in html
     finally:
         server.shutdown()
         server.server_close()
