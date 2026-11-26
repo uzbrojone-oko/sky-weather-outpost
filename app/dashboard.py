@@ -173,8 +173,10 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
         if(bucketGap>1.5) missingBuckets+=Math.max(1,Math.round(bucketGap)-1);
       }
     }
+    const bucketSeconds=Number(history.bucket_seconds)||0;
+    const bucketLabel=bucketSeconds>=3600?bucketSeconds/3600+" h":bucketSeconds/60+" min";
     const coverageLabel=points.length
-      ? "Brakujące przedziały: "+missingBuckets
+      ? "Puste przedziały (krok "+bucketLabel+"): "+missingBuckets
       : "Brak pomiarów w tym okresie";
     status.textContent="Ostatni pomiar: "+latestLabel+" ("+ageLabel+") · "+coverageLabel;
   }
