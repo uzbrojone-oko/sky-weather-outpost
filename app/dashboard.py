@@ -219,7 +219,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     if(period==="day"){
       const labelCount=Math.min(13,Math.max(3,Math.floor(plotW/54)+1));
       tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
-      labelStyle={hour:"2-digit"};
+      labelStyle={hour:"2-digit",minute:"2-digit",hourCycle:"h23"};
     }else{
       const labelCount=Math.min(8,Math.max(3,Math.floor(plotW/120)+1));
       tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
@@ -228,7 +228,8 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     tickIndexes.forEach((index)=>{
       const item=usable[index];
       const anchor=index===0?"start":index===usable.length-1?"end":"middle";
-      element("text",{x:x(index),y:height-8,"text-anchor":anchor,class:"axis-label"},dateTime(item.at,labelStyle));
+      const label=dateTime(item.at,labelStyle);
+      element("text",{x:x(index),y:height-8,"text-anchor":anchor,class:"axis-label"},period==="day"?label.replace(":","."):label);
     });
     usable.forEach((item,index)=>{
       const dot=element("circle",{cx:x(index),cy:y(item.average),r:3.4,class:"dot",stroke:metric==="humidity"?"#5b82a8":"#26785f"});
