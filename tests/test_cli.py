@@ -1,3 +1,5 @@
+import csv
+import io
 from pathlib import Path
 
 from app.cli import main
@@ -469,3 +471,79 @@ def test_weather_history_reports_empty_range(monkeypatch, capsys):
     assert exit_code == 0
     assert "Brak zapisanych pomiarów w wybranym zakresie." in captured.out
     assert captured.err == ""
+
+def test_weather_history_exports_csv(monkeypatch, capsys):
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    point = {
+        "at": "2026-11-25T12:00:00+00:00",
+        "measurements": {
+            "temperature": {
+                "average": 10.25,
+                "min": 9.5,
+                "max": 11.0,
+                "unit": "C",
+                "samples": 4,
+            },
+            "humidity": {
+                "average": 63.0,
+                "min": 60.0,
+                "max": 66.0,
+                "unit": "%",
+                "samples": 5,
+            },
+        },
+    }
+
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+    monkeypatch.setattr(cli, "initialize_database", lambda _path: None)
+    monkeypatch.setattr(
+        cli,
+        "get_reading_history",
+        lambda *_args, **_kwargs: [point],
+    )
+
+    exit_code = cli.main(
+        [
+            "weather",
+            "history",
+            "--period",
+            "week",
+            "--format",
+            "csv",
+            "--config",
+            "config/examples/city-lab.yaml",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    rows = list(csv.reader(io.StringIO(captured.out)))
+    assert exit_code == 0
+    assert rows[0] == [
+        "timestamp_utc",
+        "sensor",
+        "temperature_average_C",
+        "temperature_min_C",
+        "temperature_max_C",
+        "temperature_samples",
+        "humidity_average_percent",
+        "humidity_min_percent",
+        "humidity_max_percent",
+        "humidity_samples",
+    ]
+    assert rows[1] == [
+        "2026-11-25T12:00:00+00:00",
+        config.devices[0].name,
+        "10.25",
+        "9.5",
+        "11.0",
+        "4",
+        "63.0",
+        "60.0",
+        "66.0",
+        "5",
+    ]
+    assert captured.err == ""
+
