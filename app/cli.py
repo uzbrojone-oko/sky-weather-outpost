@@ -77,7 +77,22 @@ def _build_parser() -> argparse.ArgumentParser:
     history_parser.add_argument(
         "--period",
         choices=tuple(HISTORY_PERIODS),
-        default="day",
+        default=None,
+    )
+    history_parser.add_argument(
+        "--from",
+        dest="range_from",
+        help="ISO-8601 start timestamp with timezone",
+    )
+    history_parser.add_argument(
+        "--to",
+        dest="range_to",
+        help="ISO-8601 end timestamp with timezone",
+    )
+    history_parser.add_argument(
+        "--bucket",
+        choices=("15m", "1h", "6h", "1d"),
+        help="Aggregation bucket for a custom date range",
     )
     history_parser.add_argument("--config")
     history_parser.add_argument(
@@ -150,6 +165,23 @@ _HISTORY_LABELS = {
     "year": "ostatnie 365 dni",
 }
 
+_HISTORY_BUCKETS = {
+    "15m": 15 * 60,
+    "1h": 60 * 60,
+    "6h": 6 * 60 * 60,
+    "1d": 24 * 60 * 60,
+}
+
+
+def _parse_history_timestamp(value: str, option: str) -> datetime:
+    try:
+        timestamp = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"{option} must be an ISO-8601 timestamp") from exc
+    if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+        raise ValueError(f"{option} must include a timezone offset, for example +01:00")
+    return timestamp.astimezone(UTC)
+
 
 def _format_history_number(value: object) -> str:
     return f"{float(value):.1f}".replace(".", ",")
@@ -160,8 +192,10 @@ def _format_history(
     timezone: str,
     period: str,
     devices: list[tuple[str, list[dict[str, object]]]],
+    *,
+    title: str | None = None,
 ) -> str:
-    lines = [f"{site_name} — historia: {_HISTORY_LABELS[period]}"]
+    lines = [f"{site_name} — historia: {title or _HISTORY_LABELS[period]}"]
     rows: list[list[str]] = []
     for device_name, points in devices:
         for point in points:
@@ -368,7 +402,34 @@ def main(argv: Sequence[str] | None = None) -> int:
             config = load_config(resolve_config_path(args.config))
             database_path = Path(config.storage.sqlite_path)
             initialize_database(database_path)
-            start_at, end_at, bucket_seconds = history_window(args.period)
+            has_range_start = args.range_from is not None
+            has_range_end = args.range_to is not None
+            if has_range_start != has_range_end:
+                raise ValueError("--from and --to must be provided together")
+
+            if has_range_start:
+                if args.period is not None:
+                    raise ValueError("--period cannot be combined with --from/--to")
+                start_at = _parse_history_timestamp(args.range_from, "--from")
+                end_at = _parse_history_timestamp(args.range_to, "--to")
+                if end_at <= start_at:
+                    raise ValueError("--to must be later than --from")
+                bucket_label = args.bucket or "1h"
+                bucket_seconds = _HISTORY_BUCKETS[bucket_label]
+                history_period = "day"
+                start_local = start_at.astimezone(ZoneInfo(config.site.timezone))
+                end_local = end_at.astimezone(ZoneInfo(config.site.timezone))
+                history_title = (
+                    f"zakres {start_local:%d.%m.%Y %H:%M}–"
+                    f"{end_local:%d.%m.%Y %H:%M} · kubełek {bucket_label}"
+                )
+            else:
+                if args.bucket is not None:
+                    raise ValueError("--bucket requires --from and --to")
+                history_period = args.period or "day"
+                start_at, end_at, bucket_seconds = history_window(history_period)
+                history_title = None
+
             devices = []
             for device in config.devices:
                 if device.type != "weather_sensor":
@@ -389,8 +450,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else _format_history(
                     config.site.name,
                     config.site.timezone,
-                    args.period,
+                    history_period,
                     devices,
+                    title=history_title,
                 )
             )
             if args.output:
