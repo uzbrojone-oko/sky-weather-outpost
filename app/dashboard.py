@@ -41,7 +41,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
 .graph{height:250px;margin-top:9px;position:relative}
 .graph svg{width:100%;height:100%;overflow:visible}
 .gridline{stroke:#e9eeea;stroke-width:1}.axis-label{fill:#89968f;font-size:11px;font-family:inherit}.midnight-line{stroke:#aab9b0;stroke-width:1;stroke-dasharray:4 4}
-.zero-line{stroke:#76867d;stroke-width:1.5;stroke-dasharray:6 5}.range{fill:#dceee4;opacity:.8}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.zero-line{stroke:#76867d;stroke-width:1.5;stroke-dasharray:6 5}.range{fill:#dceee4;opacity:.8}.range-bar{stroke:#dceee4;stroke-width:6;stroke-linecap:round}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .dot{fill:#fff;stroke:var(--green);stroke-width:2}.empty{height:100%;display:grid;place-items:center;color:#96a29b;font-size:14px}
 .footer{display:flex;justify-content:space-between;gap:12px;color:#8a9790;font-size:12px;padding:10px 3px}
 .footer strong{color:#65756d;font-weight:600}
@@ -152,10 +152,10 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     $("sensorLabel").textContent = "Czujnik: " + device.name;
   }
 
-  function chart(container, points, metric, unit) {
+  function chart(container, points, metric, unit, bucketSeconds) {
     const usable = points.map((point) => {
       const item = point.measurements && point.measurements[metric];
-      return item ? {at:point.at,average:Number(item.average),min:Number(item.min),max:Number(item.max),samples:item.samples} : null;
+      return item ? {at:point.at,timestamp:Date.parse(point.at),average:Number(item.average),min:Number(item.min),max:Number(item.max),samples:item.samples} : null;
     }).filter(Boolean);
     if (!usable.length) {
       container.innerHTML = '<div class="empty">Brak pomiarów w tym zakresie</div>';
@@ -192,7 +192,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     const firstTimestamp=Number.isFinite(requestedStart)?requestedStart:Date.parse(usable[0].at);
     const lastTimestamp=Number.isFinite(requestedEnd)?requestedEnd:Date.parse(usable[usable.length-1].at);
     const xAt=(timestamp)=>left+(lastTimestamp===firstTimestamp?plotW/2:(timestamp-firstTimestamp)*plotW/(lastTimestamp-firstTimestamp));
-    const x=(index)=>xAt(Date.parse(usable[index].at));
+    const x=(index)=>xAt(usable[index].timestamp);
     const y=(value)=>top+(high-value)*plotH/(high-low);
     const boundaryXs=[];
     const monthBoundaries=[];
@@ -227,15 +227,31 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       element("line",{x1:left,y1:yy,x2:width-right,y2:yy,class:"gridline"});
       element("text",{x:left-9,y:yy+4,"text-anchor":"end",class:"axis-label"},number(value)+unit);
     });
-    const upper=usable.map((item,index)=>x(index)+","+y(item.max));
-    const lower=usable.map((item,index)=>x(index)+","+y(item.min)).reverse();
-    element("polygon",{points:upper.concat(lower).join(" "),class:"range"});
+    const maxGapMilliseconds=Math.max(1,Number(bucketSeconds)||0)*1500;
+    const segments=[];
+    usable.forEach((item,index)=>{
+      const previous=usable[index-1];
+      if(!previous||item.timestamp-previous.timestamp>maxGapMilliseconds) segments.push([]);
+      segments[segments.length-1].push({item,index});
+    });
+    segments.forEach((segment)=>{
+      if(segment.length===1){
+        const {item,index}=segment[0];
+        if(item.max>item.min) element("line",{x1:x(index),y1:y(item.max),x2:x(index),y2:y(item.min),class:"range-bar"});
+        return;
+      }
+      const upper=segment.map(({item,index})=>x(index)+","+y(item.max));
+      const lower=segment.map(({item,index})=>x(index)+","+y(item.min)).reverse();
+      element("polygon",{points:upper.concat(lower).join(" "),class:"range"});
+    });
     boundaryXs.forEach((xx)=>element("line",{x1:xx,y1:top,x2:xx,y2:top+plotH,class:"midnight-line"}));
     if(metric==="temperature"){
       element("line",{x1:left,y1:y(0),x2:width-right,y2:y(0),class:"zero-line"});
     }
-    const line=usable.map((item,index)=>(index?"L":"M")+" "+x(index)+" "+y(item.average)).join(" ");
-    element("path",{d:line,class:"line",stroke:metric==="humidity"?"#5b82a8":"#26785f"});
+    segments.forEach((segment)=>{
+      const line=segment.map(({item,index},segmentIndex)=>(segmentIndex?"L":"M")+" "+x(index)+" "+y(item.average)).join(" ");
+      element("path",{d:line,class:"line",stroke:metric==="humidity"?"#5b82a8":"#26785f"});
+    });
     let timeLabels;
     if(period==="day"){
       const hourFormatter=new Intl.DateTimeFormat("en-GB",{timeZone:timezone,hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
@@ -290,8 +306,8 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     const devices=history.devices||[];
     const weather=devices.find((item)=>item.type==="weather_sensor")||devices[0];
     const points=weather?weather.points||[]:[];
-    chart($("temperatureChart"),points,"temperature","°C");
-    chart($("humidityChart"),points,"humidity","%");
+    chart($("temperatureChart"),points,"temperature","°C",history.bucket_seconds);
+    chart($("humidityChart"),points,"humidity","%",history.bucket_seconds);
     $("updatedAt").textContent=dateTime(new Date().toISOString(),{hour:"2-digit",minute:"2-digit",second:"2-digit"});
   }
 
