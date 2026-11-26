@@ -149,7 +149,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     $("humidityNow").innerHTML = humidity ? number(humidity.value) + "<small>%</small>" : "—";
     $("temperatureAt").textContent = "Pomiar: " + when;
     $("humidityAt").textContent = "Pomiar: " + when;
-    $("sensorLabel").textContent = device.name;
+    $("sensorLabel").textContent = "Czujnik: " + device.name;
   }
 
   function chart(container, points, metric, unit) {
