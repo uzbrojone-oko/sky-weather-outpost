@@ -41,7 +41,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
 .graph{height:250px;margin-top:9px;position:relative}
 .graph svg{width:100%;height:100%;overflow:visible}
 .gridline{stroke:#e9eeea;stroke-width:1}.axis-label{fill:#89968f;font-size:11px;font-family:inherit}
-.range{fill:#dceee4;opacity:.8}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.zero-line{stroke:#76867d;stroke-width:1.5;stroke-dasharray:6 5}.range{fill:#dceee4;opacity:.8}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .dot{fill:#fff;stroke:var(--green);stroke-width:2}.empty{height:100%;display:grid;place-items:center;color:#96a29b;font-size:14px}
 .footer{display:flex;justify-content:space-between;gap:12px;color:#8a9790;font-size:12px;padding:10px 3px}
 .footer strong{color:#65756d;font-weight:600}
@@ -167,8 +167,25 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     const left=54,right=16,top=14,bottom=34,plotW=width-left-right,plotH=height-top-bottom;
     let low=Math.min(...usable.map((item)=>item.min));
     let high=Math.max(...usable.map((item)=>item.max));
-    if (low === high) { low -= 1; high += 1; }
-    const pad=(high-low)*0.12; low-=pad; high+=pad;
+    const niceStep=(raw)=>{
+      const magnitude=Math.pow(10,Math.floor(Math.log10(raw)));
+      const fraction=raw/magnitude;
+      const nice=fraction<=1.5?1:fraction<=2.25?2:fraction<=3.75?2.5:fraction<=7.5?5:10;
+      return nice*magnitude;
+    };
+    const yTicks=[];
+    if(metric==="temperature"){
+      const extent=Math.max(Math.abs(low),Math.abs(high),0.5);
+      const step=niceStep(extent/3);
+      const segments=Math.ceil(extent/step);
+      low=-segments*step; high=segments*step;
+      for(let index=-segments;index<=segments;index++) yTicks.push(Number((index*step).toFixed(2)));
+    }else{
+      if(low===high){low-=1;high+=1;}
+      const step=niceStep((high-low)/6);
+      low=Math.floor(low/step)*step; high=Math.ceil(high/step)*step;
+      for(let value=low;value<=high+step*0.001;value+=step) yTicks.push(Number(value.toFixed(2)));
+    }
     const x=(index)=>left+(usable.length===1?plotW/2:index*plotW/(usable.length-1));
     const y=(value)=>top+(high-value)*plotH/(high-low);
     const ns="http://www.w3.org/2000/svg";
@@ -184,18 +201,21 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       svg.appendChild(node);
       return node;
     }
-    for(let tick=0;tick<=4;tick++){
-      const value=high-(high-low)*tick/4;
+    yTicks.forEach((value)=>{
       const yy=y(value);
       element("line",{x1:left,y1:yy,x2:width-right,y2:yy,class:"gridline"});
       element("text",{x:left-9,y:yy+4,"text-anchor":"end",class:"axis-label"},number(value)+unit);
-    }
+    });
     const upper=usable.map((item,index)=>x(index)+","+y(item.max));
     const lower=usable.map((item,index)=>x(index)+","+y(item.min)).reverse();
     element("polygon",{points:upper.concat(lower).join(" "),class:"range"});
+    if(metric==="temperature"){
+      element("line",{x1:left,y1:y(0),x2:width-right,y2:y(0),class:"zero-line"});
+    }
     const line=usable.map((item,index)=>(index?"L":"M")+" "+x(index)+" "+y(item.average)).join(" ");
     element("path",{d:line,class:"line",stroke:metric==="humidity"?"#5b82a8":"#26785f"});
-    const tickIndexes=[...new Set([0,Math.floor((usable.length-1)/2),usable.length-1])];
+    const labelCount=Math.min(8,Math.max(3,Math.floor(plotW/120)+1));
+    const tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
     tickIndexes.forEach((index)=>{
       const item=usable[index];
       const style=period==="day"?{hour:"2-digit",minute:"2-digit"}:period==="week"?{weekday:"short",hour:"2-digit"}:{day:"2-digit",month:"2-digit"};
