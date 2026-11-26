@@ -44,7 +44,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
 .zero-line{stroke:#76867d;stroke-width:1.5;stroke-dasharray:6 5}.range{fill:#dceee4;opacity:.8}.range-bar{stroke:#dceee4;stroke-width:6;stroke-linecap:round}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .dot{fill:#fff;stroke:var(--green);stroke-width:2}.empty{height:100%;display:grid;place-items:center;color:#96a29b;font-size:14px}
 .footer{display:flex;justify-content:space-between;gap:12px;color:#8a9790;font-size:12px;padding:10px 3px}
-.footer strong{color:#65756d;font-weight:600}
+.footer strong{color:#65756d;font-weight:600}.data-status{color:#65756d}
 @media(max-width:700px){.shell{padding:22px 15px 34px}.topbar{margin-bottom:29px}.heading{display:block}.periods{width:max-content;margin-top:20px;max-width:100%}.periods button{padding:9px 11px}.cards{gap:10px}.card{padding:17px 15px;min-height:118px}.card-value{font-size:30px}.panel{padding:17px 14px 12px}.graph{height:220px}.footer{display:block;line-height:1.8}}
 @media(max-width:390px){.periods{gap:0}.periods button{padding:8px 9px;font-size:12px}.card-foot{font-size:11px}}
 </style>
@@ -106,6 +106,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
 
   <footer class="footer">
     <span id="sensorLabel">Czujnik —</span>
+    <span id="dataStatus">Ostatni pomiar: —</span>
     <span>Ostatnia aktualizacja: <strong id="updatedAt">—</strong></span>
   </footer>
 </main>
@@ -150,6 +151,32 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     $("temperatureAt").textContent = "Pomiar: " + when;
     $("humidityAt").textContent = "Pomiar: " + when;
     $("sensorLabel").textContent = "Czujnik: " + device.name;
+  }
+
+  function updateDataStatus(device, history) {
+    const status=$("dataStatus");
+    const latest=device&&(device.measured_at||device.received_at);
+    if(!latest){
+      status.textContent="Ostatni pomiar: brak";
+      return;
+    }
+    const latestTime=Date.parse(latest);
+    const age=Math.max(0,Date.now()-latestTime);
+    const ageLabel=age<60000?"przed chwilą":age<3600000?Math.floor(age/60000)+" min temu":age<86400000?Math.floor(age/3600000)+" godz. temu":Math.floor(age/86400000)+" dni temu";
+    const latestLabel=dateTime(latest,{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"});
+    const points=(device.points||[]).map((point)=>Date.parse(point.at)).filter(Number.isFinite).sort((a,b)=>a-b);
+    const bucketMilliseconds=(Number(history.bucket_seconds)||0)*1000;
+    let missingBuckets=0;
+    if(bucketMilliseconds>0){
+      for(let index=1;index<points.length;index++){
+        const bucketGap=(points[index]-points[index-1])/bucketMilliseconds;
+        if(bucketGap>1.5) missingBuckets+=Math.max(1,Math.round(bucketGap)-1);
+      }
+    }
+    const coverageLabel=points.length
+      ? "Brakujące przedziały: "+missingBuckets
+      : "Brak pomiarów w tym okresie";
+    status.textContent="Ostatni pomiar: "+latestLabel+" ("+ageLabel+") · "+coverageLabel;
   }
 
   function chart(container, points, metric, unit, bucketSeconds) {
@@ -306,6 +333,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
     const devices=history.devices||[];
     const weather=devices.find((item)=>item.type==="weather_sensor")||devices[0];
     const points=weather?weather.points||[]:[];
+    updateDataStatus(weather,history);
     chart($("temperatureChart"),points,"temperature","°C",history.bucket_seconds);
     chart($("humidityChart"),points,"humidity","%",history.bucket_seconds);
     $("updatedAt").textContent=dateTime(new Date().toISOString(),{hour:"2-digit",minute:"2-digit",second:"2-digit"});
