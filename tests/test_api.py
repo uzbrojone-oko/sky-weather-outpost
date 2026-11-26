@@ -306,6 +306,9 @@ def test_dashboard_is_served_from_api_root(tmp_path: Path):
             assert 'parts.weekday==="Mon"' in html
             assert "monthBoundaries" in html
             assert 'parts.month==="01"' in html
+            assert "function updateDataStatus" in html
+            assert "Brakujące przedziały" in html
+            assert "bucketGap>1.5" in html
     finally:
         server.shutdown()
         server.server_close()
