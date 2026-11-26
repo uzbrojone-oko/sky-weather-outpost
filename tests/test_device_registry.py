@@ -25,7 +25,7 @@ def test_registry_returns_declared_device_by_normalized_key():
     device = registry.get("rtl433:Bresser-3CH:1:241")
 
     assert device is not None
-    assert device.name == "City Lab weather sensor"
+    assert device.name == "Weather sensor"
 
 
 def test_registry_returns_none_for_unknown_device():
