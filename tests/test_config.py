@@ -9,8 +9,9 @@ def test_load_city_lab_example():
     config = load_config(Path("config/examples/city-lab.yaml"))
 
     assert config.site.id == "city-lab"
-    assert config.site.name == "City Lab"
+    assert config.site.name == "Kraków, Ugorek, PL"
     assert config.node.id == "city-lab-core"
+    assert config.node.name == "City Lab"
     assert config.modules.rtl433.enabled is True
     assert config.devices[0].match.model == "Bresser-3CH"
 
@@ -18,8 +19,9 @@ def test_load_city_lab_example():
 def test_alternate_site_and_node_are_accepted(tmp_path: Path):
     source = Path("config/examples/city-lab.yaml").read_text(encoding="utf-8")
     source = source.replace("id: city-lab", "id: field-lab", 1)
-    source = source.replace('name: "City Lab"', 'name: "Field Lab"', 1)
+    source = source.replace('name: "Kraków, Ugorek, PL"', 'name: "Field Lab"', 1)
     source = source.replace("id: city-lab-core", "id: field-lab-core", 1)
+    source = source.replace('name: "City Lab"', 'name: "Field Lab Node"', 1)
 
     path = tmp_path / "alternate.yaml"
     path.write_text(source, encoding="utf-8")
@@ -29,6 +31,7 @@ def test_alternate_site_and_node_are_accepted(tmp_path: Path):
     assert config.site.id == "field-lab"
     assert config.site.name == "Field Lab"
     assert config.node.id == "field-lab-core"
+    assert config.node.name == "Field Lab Node"
 
 
 def test_missing_required_site_id_is_rejected(tmp_path: Path):
