@@ -186,8 +186,11 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       low=Math.floor(low/step)*step; high=Math.ceil(high/step)*step;
       for(let value=low;value<=high+step*0.001;value+=step) yTicks.push(Number(value.toFixed(2)));
     }
-    const firstTimestamp=Date.parse(usable[0].at);
-    const lastTimestamp=Date.parse(usable[usable.length-1].at);
+    const historyRange=historyData||{};
+    const requestedStart=Date.parse(historyRange.from||"");
+    const requestedEnd=Date.parse(historyRange.to||"");
+    const firstTimestamp=Number.isFinite(requestedStart)?requestedStart:Date.parse(usable[0].at);
+    const lastTimestamp=Number.isFinite(requestedEnd)?requestedEnd:Date.parse(usable[usable.length-1].at);
     const xAt=(timestamp)=>left+(lastTimestamp===firstTimestamp?plotW/2:(timestamp-firstTimestamp)*plotW/(lastTimestamp-firstTimestamp));
     const x=(index)=>xAt(Date.parse(usable[index].at));
     const y=(value)=>top+(high-value)*plotH/(high-low);
@@ -247,9 +250,15 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       timeLabels=fullHourLabels.filter((_,index)=>index%stride===0);
     }else{
       const labelCount=Math.min(8,Math.max(3,Math.floor(plotW/120)+1));
-      const tickIndexes=[...new Set(Array.from({length:labelCount},(_,index)=>Math.round(index*(usable.length-1)/(labelCount-1))) )];
-      const labelStyle=period==="week"?{weekday:"short",hour:"2-digit"}:{day:"2-digit",month:"2-digit"};
-      timeLabels=tickIndexes.map((index)=>({x:x(index),label:dateTime(usable[index].at,labelStyle)}));
+      const labelStyle=period==="week"
+        ?{weekday:"short",hour:"2-digit"}
+        :period==="year"
+          ?{month:"short",year:"2-digit"}
+          :{day:"2-digit",month:"2-digit"};
+      timeLabels=Array.from({length:labelCount},(_,index)=>{
+        const timestamp=firstTimestamp+(lastTimestamp-firstTimestamp)*index/(labelCount-1);
+        return {x:xAt(timestamp),label:dateTime(timestamp,labelStyle)};
+      });
     }
     timeLabels.forEach((item,index)=>{
       const anchor=index===0?"start":index===timeLabels.length-1?"end":"middle";
