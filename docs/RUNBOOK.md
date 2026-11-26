@@ -74,7 +74,10 @@ outpost weather history --period day
 outpost weather history --period week
 outpost weather history --period month
 outpost weather history --period year
+outpost weather history --period month --format csv > weather-month.csv
 ```
+
+The default output is a readable table. Use `--format csv` to write CSV to stdout; timestamps in CSV are UTC. Redirect stdout to save the export to a file.
 
 Use `--config PATH` to select a config explicitly; without it, the CLI uses `OUTPOST_CONFIG` or the default user config path.
 
