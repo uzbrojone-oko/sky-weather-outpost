@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Format daily chart time labels in 24-hour `HH.MM` notation.
 - Show hourly time labels on the daily weather charts, with spacing adapted to the available width.
 - Improved dashboard chart axes with adaptive time labels, denser value ticks and a centered 0 °C reference line.
 - Separated site, node and sensor labels in the example config, API payloads and dashboard.
