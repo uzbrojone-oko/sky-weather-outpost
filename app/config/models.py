@@ -17,6 +17,7 @@ class SiteConfig(ConfigModel):
 class NodeConfig(ConfigModel):
     id: str
     role: str
+    name: str | None = None
 
 
 class Rtl433Config(ConfigModel):

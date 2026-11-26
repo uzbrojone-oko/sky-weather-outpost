@@ -98,6 +98,10 @@ def create_api_server(
                             "name": config.site.name,
                             "timezone": config.site.timezone,
                         },
+                        "node": {
+                            "id": config.node.id,
+                            "name": config.node.name or config.site.name,
+                        },
                         "period": period,
                         "from": start_at.isoformat(),
                         "to": end_at.isoformat(),
@@ -130,6 +134,10 @@ def create_api_server(
                     "id": config.site.id,
                     "name": config.site.name,
                     "timezone": config.site.timezone,
+                },
+                "node": {
+                    "id": config.node.id,
+                    "name": config.node.name or config.site.name,
                 },
                 "devices": devices,
             })
