@@ -106,7 +106,9 @@ def _copy_verified_database(
     if not source_path.is_file():
         raise FileNotFoundError(f"Database does not exist: {source_path}")
     if source_path.resolve() == destination_path.resolve():
-        raise ValueError(f"{operation} destination must differ from the source database")
+        raise ValueError(
+            f"{operation} destination must differ from the source database"
+        )
 
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     with destination_path.open("xb"):
