@@ -843,3 +843,154 @@ def test_restore_rejects_invalid_database_and_removes_partial_output(
     assert captured.out == ""
     assert captured.err
     assert not restored_path.exists()
+
+
+def _seed_status_database(database_path: Path, config, received_at, battery_ok: int):
+    import sqlite3
+
+    from app.storage.database import initialize_database
+
+    initialize_database(database_path)
+    device = next(item for item in config.devices if item.type == "weather_sensor")
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            "INSERT INTO nodes (node_id, site_id, role) VALUES (?, ?, ?)",
+            (config.node.id, config.site.id, config.node.role),
+        )
+        connection.execute(
+            "INSERT INTO devices (device_key, node_id, name, type, public) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (device.key, config.node.id, device.name, device.type, device.public),
+        )
+        cursor = connection.execute(
+            "INSERT INTO raw_events (source, device_key, received_at, raw_json) "
+            "VALUES ('rtl433', ?, ?, '{}')",
+            (device.key, received_at.isoformat()),
+        )
+        raw_event_id = cursor.lastrowid
+        connection.executemany(
+            "INSERT INTO measurements "
+            "(device_key, metric, value, unit, measured_at, received_at, raw_event_id) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    device.key,
+                    "temperature",
+                    12.5,
+                    "C",
+                    received_at.isoformat(),
+                    received_at.isoformat(),
+                    raw_event_id,
+                ),
+                (
+                    device.key,
+                    "humidity",
+                    65,
+                    "%",
+                    received_at.isoformat(),
+                    received_at.isoformat(),
+                    raw_event_id,
+                ),
+                (
+                    device.key,
+                    "battery_ok",
+                    battery_ok,
+                    "bool",
+                    received_at.isoformat(),
+                    received_at.isoformat(),
+                    raw_event_id,
+                ),
+            ],
+        )
+
+
+def test_status_reports_database_sensor_battery_and_latest_backup(
+    tmp_path: Path, monkeypatch, capsys
+):
+    from datetime import UTC, datetime
+
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "outpost.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+    _seed_status_database(database_path, config, datetime.now(UTC), 1)
+    backup_path = tmp_path / "backups" / "outpost-latest.sqlite"
+    backup_path.parent.mkdir()
+    backup_path.write_bytes(b"backup marker")
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+
+    exit_code = cli.main(["status"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Baza: OK · integralność OK · migracja 1/1" in captured.out
+    assert "Czujnik Bresser - Ułanów: OK" in captured.out
+    assert "bateria OK" in captured.out
+    assert "Backup: outpost-latest.sqlite" in captured.out
+    assert captured.err == ""
+
+
+def test_status_warns_for_stale_sensor_and_low_battery(
+    tmp_path: Path, monkeypatch, capsys
+):
+    from datetime import UTC, datetime, timedelta
+
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "outpost.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+    old_reading = datetime.now(UTC) - timedelta(hours=1)
+    _seed_status_database(database_path, config, old_reading, 0)
+    backup_path = tmp_path / "backups" / "outpost-latest.sqlite"
+    backup_path.parent.mkdir()
+    backup_path.write_bytes(b"backup marker")
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+
+    exit_code = cli.main(["status"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "NIEAKTUALNY" in captured.out
+    assert "niska bateria" in captured.out
+
+
+def test_status_reports_missing_database_without_creating_it(
+    tmp_path: Path, monkeypatch, capsys
+):
+    from app import cli
+    from app.config.loader import load_config
+
+    database_path = tmp_path / "missing.sqlite"
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+
+    exit_code = cli.main(["status"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "Baza: BŁĄD" in captured.out
+    assert "Backup: BRAK" in captured.out
+    assert not database_path.exists()
