@@ -42,7 +42,7 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
 .graph svg{width:100%;height:100%;overflow:visible}
 .gridline{stroke:#e9eeea;stroke-width:1}.axis-label{fill:#89968f;font-size:11px;font-family:inherit}.midnight-line{stroke:#aab9b0;stroke-width:1;stroke-dasharray:4 4}
 .zero-line{stroke:#76867d;stroke-width:1.5;stroke-dasharray:6 5}.range{fill:#dceee4;opacity:.8}.range-bar{stroke:#dceee4;stroke-width:6;stroke-linecap:round}.line{fill:none;stroke:var(--green);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
-.dot{fill:#fff;stroke:var(--green);stroke-width:2}.empty{height:100%;display:grid;place-items:center;color:#96a29b;font-size:14px}
+.dot{fill:#fff;stroke:var(--green);stroke-width:2}.dot:focus-visible{stroke-width:3.5;outline:none}.chart-tooltip{position:absolute;z-index:3;max-width:min(260px,calc(100% - 16px));padding:8px 10px;border:1px solid #dfe8e1;border-radius:9px;background:#fff;box-shadow:0 8px 24px #173b2820;color:#38564a;font-size:12px;line-height:1.5;pointer-events:none;white-space:normal}.chart-tooltip strong{display:block;color:#14231f;font-size:12px}.empty{height:100%;display:grid;place-items:center;color:#96a29b;font-size:14px}
 .footer{display:flex;justify-content:space-between;gap:12px;color:#8a9790;font-size:12px;padding:10px 3px}
 .footer strong{color:#65756d;font-weight:600}.data-status{color:#65756d}.battery-ok{color:#26785f}.battery-low{color:#a33b32}.battery-unknown{color:#89968f}
 @media(max-width:700px){.shell{padding:22px 15px 34px}.topbar{margin-bottom:29px}.heading{display:block}.periods{width:max-content;margin-top:20px;max-width:100%}.periods button{padding:9px 11px}.cards{gap:10px}.card{padding:17px 15px;min-height:118px}.card-value{font-size:30px}.panel{padding:17px 14px 12px}.graph{height:220px}.footer{display:block;line-height:1.8}}
@@ -359,11 +359,87 @@ h1{font-size:clamp(30px,4vw,43px);letter-spacing:-.045em;margin:0;font-weight:72
       const anchor=index===0?"start":index===timeLabels.length-1?"end":"middle";
       element("text",{x:item.x,y:height-8,"text-anchor":anchor,class:"axis-label"},item.label);
     });
-    usable.forEach((item,index)=>{
-      const dot=element("circle",{cx:x(index),cy:y(item.average),r:3.4,class:"dot",stroke:metric==="humidity"?"#5b82a8":"#26785f"});
-      dot.appendChild(document.createElementNS(ns,"title")).textContent=dateTime(item.at,{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})+": "+number(item.average)+" "+unit+" (min "+number(item.min)+", max "+number(item.max)+", n="+item.samples+")";
+    const tooltip=document.createElement("div");
+    tooltip.className="chart-tooltip";
+    tooltip.id=metric+"-tooltip";
+    tooltip.setAttribute("role","tooltip");
+    tooltip.hidden=true;
+
+    function showTooltip(item,pointX,pointY) {
+      tooltip.replaceChildren();
+      const heading=document.createElement("strong");
+      heading.textContent=dateTime(item.at,{weekday:"short",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
+      const average=document.createElement("div");
+      average.textContent="Średnia: "+number(item.average)+" "+unit;
+      const range=document.createElement("div");
+      range.textContent="Zakres: "+number(item.min)+"–"+number(item.max)+" "+unit;
+      const samples=document.createElement("div");
+      samples.textContent="Próbek: "+item.samples;
+      tooltip.append(heading,average,range,samples);
+      tooltip.hidden=false;
+
+      const rect=container.getBoundingClientRect();
+      const xInContainer=pointX/width*rect.width;
+      const yInContainer=pointY/height*rect.height;
+      const halfTooltip=tooltip.offsetWidth/2;
+      tooltip.style.left=Math.max(halfTooltip+8,Math.min(rect.width-halfTooltip-8,xInContainer))+"px";
+      const below=yInContainer<68;
+      tooltip.style.top=(below?yInContainer+12:yInContainer-10)+"px";
+      tooltip.style.transform=below?"translate(-50%,0)":"translate(-50%,-100%)";
+    }
+
+    function hideTooltip() {
+      tooltip.hidden=true;
+    }
+
+    const markerStride=Math.max(1,Math.ceil(usable.length/Math.max(8,Math.floor(plotW/24))));
+    const markerIndexes=new Set();
+    for(let index=0;index<usable.length;index+=markerStride) markerIndexes.add(index);
+    markerIndexes.add(usable.length-1);
+    markerIndexes.forEach((index)=>{
+      const item=usable[index];
+      const dot=element("circle",{
+        cx:x(index),
+        cy:y(item.average),
+        r:3.4,
+        class:"dot",
+        stroke:metric==="humidity"?"#5b82a8":"#26785f",
+        tabindex:"0",
+        "aria-describedby":tooltip.id,
+        "aria-label":dateTime(item.at,{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})+
+          ": "+number(item.average)+" "+unit+", min "+number(item.min)+", max "+number(item.max)
+      });
+      dot.addEventListener("focus",()=>showTooltip(item,x(index),y(item.average)));
+      dot.addEventListener("blur",hideTooltip);
+      dot.appendChild(document.createElementNS(ns,"title")).textContent=
+        dateTime(item.at,{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})+
+        ": "+number(item.average)+" "+unit+" (min "+number(item.min)+", max "+number(item.max)+", n="+item.samples+")";
     });
-    container.replaceChildren(svg);
+
+    svg.addEventListener("pointermove",(event)=>{
+      if(event.pointerType==="touch") return;
+      const rect=svg.getBoundingClientRect();
+      const px=(event.clientX-rect.left)*width/rect.width;
+      const py=(event.clientY-rect.top)*height/rect.height;
+      if(px<left||px>width-right||py<top||py>top+plotH){
+        hideTooltip();
+        return;
+      }
+      let nearest=usable[0];
+      let nearestIndex=0;
+      let distance=Math.abs(xAt(nearest.timestamp)-px);
+      for(let index=1;index<usable.length;index++){
+        const candidateDistance=Math.abs(xAt(usable[index].timestamp)-px);
+        if(candidateDistance<distance){
+          nearest=usable[index];
+          nearestIndex=index;
+          distance=candidateDistance;
+        }
+      }
+      showTooltip(nearest,x(nearestIndex),y(nearest.average));
+    });
+    svg.addEventListener("pointerleave",hideTooltip);
+    container.replaceChildren(svg,tooltip);
   }
 
   function render() {

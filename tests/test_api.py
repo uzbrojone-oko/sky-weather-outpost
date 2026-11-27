@@ -318,6 +318,12 @@ def test_dashboard_is_served_from_api_root(tmp_path: Path):
             assert "Puste przedziały (krok " in html
             assert 'bucketSeconds/3600+" h"' in html
             assert 'bucketSeconds/60+" min"' in html
+            assert "markerStride" in html
+            assert 'className="chart-tooltip"' in html
+            assert 'function showTooltip(item,pointX,pointY)' in html
+            assert 'svg.addEventListener("pointermove"' in html
+            assert 'range.textContent="Zakres: "' in html
+            assert "Próbek: " in html
     finally:
         server.shutdown()
         server.server_close()
