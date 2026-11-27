@@ -116,15 +116,19 @@ Replay writes to the SQLite database selected by the supplied config. Use a test
 
 ## Backup
 
+Create a verified SQLite backup using the configured database path:
+
 ```bash
-./scripts/backup.sh
+outpost backup --config "$HOME/.config/sky-weather-outpost/live.yaml"
 ```
 
-Backup should include:
+By default, the command writes a timestamped file to a `backups/` directory beside the database. Use `--output PATH` to choose a destination. The command uses SQLite's online backup API, checks the resulting database integrity, and refuses to overwrite an existing file. The current command backs up the database only; it does not copy configuration or secrets.
 
-- SQLite database
-- config without secrets
-- application version
+The shell wrapper accepts the same options:
+
+```bash
+./scripts/backup.sh --config "$HOME/.config/sky-weather-outpost/live.yaml"
+```
 
 ## Restore
 
