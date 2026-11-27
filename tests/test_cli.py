@@ -772,3 +772,74 @@ def test_backup_reports_missing_database_without_creating_backup(
     assert "Database does not exist" in captured.err
     assert not database_path.exists()
     assert not (tmp_path / "backups").exists()
+
+
+
+def test_restore_creates_verified_database_copy(tmp_path: Path, capsys):
+    import sqlite3
+
+    from app import cli
+    from app.storage.database import initialize_database
+
+    backup_path = tmp_path / "backup.sqlite"
+    restored_path = tmp_path / "restored" / "outpost.sqlite"
+    initialize_database(backup_path)
+    with sqlite3.connect(backup_path) as connection:
+        connection.execute(
+            "INSERT INTO system_events (level, component, message) "
+            "VALUES ('INFO', 'test', 'restored data')"
+        )
+
+    exit_code = cli.main(
+        ["restore", "--input", str(backup_path), "--output", str(restored_path)]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out == f"Database restored and verified: {restored_path}\\n"
+    assert captured.err == ""
+    with sqlite3.connect(restored_path) as connection:
+        assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        assert connection.execute(
+            "SELECT message FROM system_events"
+        ).fetchall() == [("restored data",)]
+
+
+def test_restore_does_not_overwrite_existing_output(tmp_path: Path, capsys):
+    from app import cli
+    from app.storage.database import initialize_database
+
+    backup_path = tmp_path / "backup.sqlite"
+    restored_path = tmp_path / "existing.sqlite"
+    initialize_database(backup_path)
+    restored_path.write_text("keep this file", encoding="utf-8")
+
+    exit_code = cli.main(
+        ["restore", "--input", str(backup_path), "--output", str(restored_path)]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.out == ""
+    assert "File exists" in captured.err
+    assert restored_path.read_text(encoding="utf-8") == "keep this file"
+
+
+def test_restore_rejects_invalid_database_and_removes_partial_output(
+    tmp_path: Path, capsys
+):
+    from app import cli
+
+    backup_path = tmp_path / "not-a-database.sqlite"
+    restored_path = tmp_path / "restored.sqlite"
+    backup_path.write_text("not sqlite", encoding="utf-8")
+
+    exit_code = cli.main(
+        ["restore", "--input", str(backup_path), "--output", str(restored_path)]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.out == ""
+    assert captured.err
+    assert not restored_path.exists()
