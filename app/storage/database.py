@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 _MIGRATIONS = (
@@ -92,3 +93,63 @@ def initialize_database(path: Path) -> None:
             except Exception:
                 connection.rollback()
                 raise
+
+
+
+def backup_database(source_path: Path, destination_path: Path) -> None:
+    """Create and verify a SQLite-safe backup without overwriting an existing file."""
+    source_path = Path(source_path)
+    destination_path = Path(destination_path)
+
+    if not source_path.is_file():
+        raise FileNotFoundError(f"Database does not exist: {source_path}")
+    if source_path.resolve() == destination_path.resolve():
+        raise ValueError("Backup destination must differ from the source database")
+
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    with destination_path.open("xb"):
+        pass
+
+    try:
+        with closing(
+            sqlite3.connect(
+                source_path.resolve().as_uri() + "?mode=ro",
+                uri=True,
+            )
+        ) as source_connection:
+            schema = source_connection.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type = 'table' AND name = 'schema_migrations'"
+            ).fetchone()
+            if schema is None:
+                raise ValueError(
+                    f"Not an initialized Outpost database: {source_path}"
+                )
+            with closing(sqlite3.connect(destination_path)) as destination_connection:
+                source_connection.backup(destination_connection)
+
+        with closing(
+            sqlite3.connect(
+                destination_path.resolve().as_uri() + "?mode=ro",
+                uri=True,
+            )
+        ) as verification_connection:
+            integrity = verification_connection.execute(
+                "PRAGMA integrity_check"
+            ).fetchone()
+            if integrity is None or integrity[0] != "ok":
+                result = integrity[0] if integrity else "no result"
+                raise sqlite3.DatabaseError(
+                    f"Backup integrity check failed: {result}"
+                )
+            schema = verification_connection.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type = 'table' AND name = 'schema_migrations'"
+            ).fetchone()
+            if schema is None:
+                raise sqlite3.DatabaseError(
+                    "Backup is missing the schema_migrations table"
+                )
+    except BaseException:
+        destination_path.unlink(missing_ok=True)
+        raise

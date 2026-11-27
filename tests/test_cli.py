@@ -665,3 +665,110 @@ def test_weather_history_requires_timezone_offset_for_custom_range(
     assert exit_code == 2
     assert "--from must include a timezone offset" in captured.err
 
+
+
+
+def test_backup_creates_verified_timestamped_database_copy(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+):
+    import sqlite3
+
+    from app import cli
+    from app.config.loader import load_config
+    from app.storage.database import initialize_database
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "outpost-live.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+    initialize_database(database_path)
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            "INSERT INTO system_events (level, component, message) "
+            "VALUES ('INFO', 'test', 'preserve me')"
+        )
+
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+    exit_code = cli.main(["backup"])
+
+    captured = capsys.readouterr()
+    backup_path = Path(
+        captured.out.removeprefix("Backup created: ").strip()
+    )
+    assert exit_code == 0
+    assert backup_path.parent == tmp_path / "backups"
+    assert backup_path.name.startswith("outpost-live-")
+    with sqlite3.connect(backup_path) as connection:
+        assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        assert connection.execute(
+            "SELECT message FROM system_events"
+        ).fetchall() == [("preserve me",)]
+    assert captured.err == ""
+
+
+def test_backup_does_not_overwrite_existing_output(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+):
+    from app import cli
+    from app.config.loader import load_config
+    from app.storage.database import initialize_database
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "outpost.sqlite"
+    backup_path = tmp_path / "existing.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+    initialize_database(database_path)
+    backup_path.write_text("keep this file", encoding="utf-8")
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+
+    exit_code = cli.main(["backup", "--output", str(backup_path)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.out == ""
+    assert "File exists" in captured.err
+    assert backup_path.read_text(encoding="utf-8") == "keep this file"
+
+
+def test_backup_reports_missing_database_without_creating_backup(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+):
+    from app import cli
+    from app.config.loader import load_config
+
+    config = load_config(Path("config/examples/city-lab.yaml"))
+    database_path = tmp_path / "missing.sqlite"
+    config = config.model_copy(
+        update={
+            "storage": config.storage.model_copy(
+                update={"sqlite_path": str(database_path)}
+            )
+        }
+    )
+    monkeypatch.setattr(cli, "load_config", lambda _path: config)
+
+    exit_code = cli.main(["backup"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.out == ""
+    assert "Database does not exist" in captured.err
+    assert not database_path.exists()
+    assert not (tmp_path / "backups").exists()
