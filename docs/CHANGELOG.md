@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- Add a verified SQLite restore command that restores to a new file and refuses to overwrite existing data.
 - Query weather history over a custom ISO-8601 time range with selectable aggregation buckets.
 - Add a verified SQLite backup command that refuses to overwrite existing files.
 - Reduce dashboard chart marker clutter while keeping full-resolution lines and adding hover details for each bucket.
