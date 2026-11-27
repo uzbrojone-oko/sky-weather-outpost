@@ -132,17 +132,21 @@ The shell wrapper accepts the same options:
 
 ## Restore
 
+Restore a backup to a **new path** first. This verifies the file and leaves the configured live database and running services untouched:
+
 ```bash
-./scripts/restore.sh <backup-file>
+outpost restore \
+  --input data/backups/outpost-live-YYYYMMDD-HHMMSS.sqlite \
+  --output data/outpost-restore-check.sqlite
 ```
 
-Restore should:
+The restore command uses SQLite's backup API, checks database integrity and the Outpost schema, and refuses to overwrite an existing file. Inspect the restored database before planning any live replacement. The command does not switch the configured database, run migrations, or restart services.
 
-- restore config
-- restore database
-- run migrations
-- restart service
-- run healthcheck
+The shell wrapper accepts the same options:
+
+```bash
+./scripts/restore.sh --input <backup-file> --output <new-database-path>
+```
 
 ## Add new rtl_433 device
 

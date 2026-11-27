@@ -96,15 +96,19 @@ def initialize_database(path: Path) -> None:
 
 
 
-def backup_database(source_path: Path, destination_path: Path) -> None:
-    """Create and verify a SQLite-safe backup without overwriting an existing file."""
+def _copy_verified_database(
+    source_path: Path, destination_path: Path, *, operation: str
+) -> None:
+    """Copy an initialized Outpost database and verify it without overwriting."""
     source_path = Path(source_path)
     destination_path = Path(destination_path)
 
     if not source_path.is_file():
         raise FileNotFoundError(f"Database does not exist: {source_path}")
     if source_path.resolve() == destination_path.resolve():
-        raise ValueError("Backup destination must differ from the source database")
+        raise ValueError(
+            f"{operation} destination must differ from the source database"
+        )
 
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     with destination_path.open("xb"):
@@ -140,7 +144,7 @@ def backup_database(source_path: Path, destination_path: Path) -> None:
             if integrity is None or integrity[0] != "ok":
                 result = integrity[0] if integrity else "no result"
                 raise sqlite3.DatabaseError(
-                    f"Backup integrity check failed: {result}"
+                    f"{operation} integrity check failed: {result}"
                 )
             schema = verification_connection.execute(
                 "SELECT 1 FROM sqlite_master "
@@ -153,3 +157,13 @@ def backup_database(source_path: Path, destination_path: Path) -> None:
     except BaseException:
         destination_path.unlink(missing_ok=True)
         raise
+
+
+def backup_database(source_path: Path, destination_path: Path) -> None:
+    """Create and verify a SQLite-safe backup without overwriting an existing file."""
+    _copy_verified_database(source_path, destination_path, operation="Backup")
+
+
+def restore_database(backup_path: Path, destination_path: Path) -> None:
+    """Restore a verified backup to a new SQLite file without overwriting it."""
+    _copy_verified_database(backup_path, destination_path, operation="Restore")

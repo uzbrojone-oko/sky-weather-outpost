@@ -17,7 +17,7 @@ from app.config.loader import ConfigError, load_config, resolve_config_path
 from app.history import HISTORY_PERIODS, history_window
 from app.ingest.replay import replay_jsonl
 from app.ingest.rtl433 import Rtl433FrameProcessor
-from app.storage.database import backup_database, initialize_database
+from app.storage.database import backup_database, initialize_database, restore_database
 from app.storage.repository import (
     get_latest_reading,
     get_reading_history,
@@ -46,6 +46,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output",
         help="Backup file path (default: a timestamped file beside the database)",
     )
+
+    restore_parser = commands.add_parser(
+        "restore", help="Restore a verified SQLite backup to a new file"
+    )
+    restore_parser.add_argument("--input", required=True, help="Backup database path")
+    restore_parser.add_argument("--output", required=True, help="New database path")
 
     rtl433_parser = commands.add_parser("rtl433", help="RTL-433 commands")
     rtl433_commands = rtl433_parser.add_subparsers(
@@ -327,6 +333,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
 
         print(f"Backup created: {backup_path}")
+        return 0
+
+    if args.command == "restore":
+        try:
+            restore_database(Path(args.input), Path(args.output))
+        except (OSError, ValueError, sqlite3.Error) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+
+        print(f"Database restored and verified: {args.output}")
         return 0
 
     if args.command == "config" and args.config_command == "validate":
