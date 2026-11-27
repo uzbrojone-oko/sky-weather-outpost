@@ -17,7 +17,12 @@ from app.config.loader import ConfigError, load_config, resolve_config_path
 from app.history import HISTORY_PERIODS, history_window
 from app.ingest.replay import replay_jsonl
 from app.ingest.rtl433 import Rtl433FrameProcessor
-from app.storage.database import backup_database, initialize_database, restore_database
+from app.status import build_status_report
+from app.storage.database import (
+    backup_database,
+    initialize_database,
+    restore_database,
+)
 from app.storage.repository import (
     get_latest_reading,
     get_reading_history,
@@ -52,6 +57,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     restore_parser.add_argument("--input", required=True, help="Backup database path")
     restore_parser.add_argument("--output", required=True, help="New database path")
+
+    status_parser = commands.add_parser(
+        "status", help="Show local database, sensor and backup status"
+    )
+    status_parser.add_argument("--config")
 
     rtl433_parser = commands.add_parser("rtl433", help="RTL-433 commands")
     rtl433_commands = rtl433_parser.add_subparsers(
@@ -344,6 +354,17 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         print(f"Database restored and verified: {args.output}")
         return 0
+
+    if args.command == "status":
+        try:
+            config = load_config(resolve_config_path(args.config))
+            report = build_status_report(config)
+        except (ConfigError, OSError, ValueError, sqlite3.Error) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+
+        print("\n".join(report.lines))
+        return report.exit_code
 
     if args.command == "config" and args.config_command == "validate":
         try:

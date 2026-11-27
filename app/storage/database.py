@@ -57,6 +57,8 @@ _MIGRATIONS = (
     ),
 )
 
+CURRENT_SCHEMA_VERSION = max(version for version, _ in _MIGRATIONS)
+
 
 def initialize_database(path: Path) -> None:
     path = Path(path)

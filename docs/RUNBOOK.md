@@ -35,6 +35,16 @@ After updating code or service files, restart the app:
 sudo systemctl restart sky-weather-outpost-ingest.service sky-weather-outpost-api.service
 ```
 
+## Local status
+
+Check the configured database, latest sensor signal and battery, and the newest SQLite backup:
+
+```bash
+outpost status --config "$HOME/.config/sky-weather-outpost/live.yaml"
+```
+
+The command is read-only. It reports a warning (exit code 1) when the database is unavailable, a configured weather sensor has no recent reading, a battery is low, or no backup file exists in the database's `backups/` directory. It does not inspect or restart systemd services.
+
 ## Dashboard
 
 Open the weather dashboard locally at `http://127.0.0.1:8000/` or from another device on the LAN at `http://<host-ip>:8000/`. It shows the latest reading and temperature and humidity history for the selected period.
