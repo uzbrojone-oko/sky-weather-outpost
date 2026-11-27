@@ -17,7 +17,7 @@ from app.config.loader import ConfigError, load_config, resolve_config_path
 from app.history import HISTORY_PERIODS, history_window
 from app.ingest.replay import replay_jsonl
 from app.ingest.rtl433 import Rtl433FrameProcessor
-from app.storage.database import initialize_database
+from app.storage.database import backup_database, initialize_database
 from app.storage.repository import (
     get_latest_reading,
     get_reading_history,
@@ -37,6 +37,15 @@ def _build_parser() -> argparse.ArgumentParser:
         "validate", help="Validate a YAML config"
     )
     validate_parser.add_argument("path")
+
+    backup_parser = commands.add_parser(
+        "backup", help="Create a verified SQLite database backup"
+    )
+    backup_parser.add_argument("--config")
+    backup_parser.add_argument(
+        "--output",
+        help="Backup file path (default: a timestamped file beside the database)",
+    )
 
     rtl433_parser = commands.add_parser("rtl433", help="RTL-433 commands")
     rtl433_commands = rtl433_parser.add_subparsers(
@@ -288,6 +297,37 @@ def _format_history_csv(
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
+
+    if args.command == "backup":
+        try:
+            config = load_config(resolve_config_path(args.config))
+            database_path = Path(config.storage.sqlite_path)
+            if args.output:
+                backup_path = Path(args.output)
+            else:
+                backup_directory = database_path.parent / "backups"
+                timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+                backup_path = backup_directory / (
+                    f"{database_path.stem}-{timestamp}.sqlite"
+                )
+                suffix = 1
+                while backup_path.exists():
+                    backup_path = backup_directory / (
+                        f"{database_path.stem}-{timestamp}-{suffix}.sqlite"
+                    )
+                    suffix += 1
+            backup_database(database_path, backup_path)
+        except (
+            ConfigError,
+            OSError,
+            ValueError,
+            sqlite3.Error,
+        ) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+
+        print(f"Backup created: {backup_path}")
+        return 0
 
     if args.command == "config" and args.config_command == "validate":
         try:
