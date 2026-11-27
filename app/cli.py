@@ -17,12 +17,12 @@ from app.config.loader import ConfigError, load_config, resolve_config_path
 from app.history import HISTORY_PERIODS, history_window
 from app.ingest.replay import replay_jsonl
 from app.ingest.rtl433 import Rtl433FrameProcessor
+from app.status import build_status_report
 from app.storage.database import (
     backup_database,
     initialize_database,
     restore_database,
 )
-from app.status import build_status_report
 from app.storage.repository import (
     get_latest_reading,
     get_reading_history,
@@ -363,7 +363,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(str(exc), file=sys.stderr)
             return 2
 
-        print("\\n".join(report.lines))
+        print("\n".join(report.lines))
         return report.exit_code
 
     if args.command == "config" and args.config_command == "validate":
