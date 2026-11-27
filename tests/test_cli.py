@@ -796,7 +796,7 @@ def test_restore_creates_verified_database_copy(tmp_path: Path, capsys):
 
     captured = capsys.readouterr()
     assert exit_code == 0
-    assert captured.out == f"Database restored and verified: {restored_path}\\n"
+    assert captured.out == f"Database restored and verified: {restored_path}\n"
     assert captured.err == ""
     with sqlite3.connect(restored_path) as connection:
         assert connection.execute("PRAGMA integrity_check").fetchone() == ("ok",)
