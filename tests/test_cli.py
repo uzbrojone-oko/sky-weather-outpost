@@ -932,7 +932,7 @@ def test_status_reports_database_sensor_battery_and_latest_backup(
     captured = capsys.readouterr()
     assert exit_code == 0
     assert "Baza: OK · integralność OK · migracja 1/1" in captured.out
-    assert "Czujnik Bresser - Ułanów: OK" in captured.out
+    assert f"Czujnik {config.devices[0].name}: OK" in captured.out
     assert "bateria OK" in captured.out
     assert "Backup: outpost-latest.sqlite" in captured.out
     assert captured.err == ""
